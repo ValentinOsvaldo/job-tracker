@@ -1,0 +1,87 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+.pnpm-store/
+
+# ========================
+# Build outputs
+# ========================
+dist/
+build/
+.output/
+.nuxt/
+.next/
+out/
+
+# ========================
+# Environment variables
+# ========================
+.env
+.env.*
+!.env.example
+
+# ========================
+# Logs
+# ========================
+*.log
+logs/
+npm-debug.log*
+pnpm-debug.log*
+
+# ========================
+# TypeScript
+# ========================
+*.tsbuildinfo
+
+# ========================
+# NestJS
+# ========================
+apps/backend/dist/
+
+# ========================
+# Nuxt
+# ========================
+apps/frontend/.nuxt/
+apps/frontend/.output/
+
+# ========================
+# Python (scraper)
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+*.egg-info/
+.eggs/
+.pytest_cache/
+
+# ========================
+# Scraper output files
+# ========================
+scraper/jobs_sample.json
+scraper/*.json
+scraper/*.csv
+
+# ========================
+# OS
+# ========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ========================
+# IDE
+# ========================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# ========================
+# Testing
+# ========================
+coverage/
+.nyc_output/

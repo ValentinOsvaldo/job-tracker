@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
+import { SearchProfile } from '../../profiles/entities/search-profile.entity';
 
 @Entity('users')
 export class User {
@@ -35,4 +36,7 @@ export class User {
 
   @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
   refresh_tokens: RefreshToken[];
+
+  @OneToMany(() => SearchProfile, (profile) => profile.user)
+  search_profiles: SearchProfile[];
 }

@@ -2,8 +2,10 @@ import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
+import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
 
 @Entity('jobs')
@@ -34,4 +36,7 @@ export class Job {
 
   @CreateDateColumn({ type: 'timestamptz' })
   scraped_at: Date;
+
+  @OneToMany(() => JobAnalysis, (analysis) => analysis.job)
+  analyses: JobAnalysis[];
 }

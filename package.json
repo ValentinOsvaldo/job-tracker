@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start:api": "pnpm --filter @job-tracker/api start",
-    "start:all": "concurrently \"pnpm run start:api\""
+    "start:all": "concurrently \"pnpm run start:dev\""
   },
   "keywords": [],
   "author": "",

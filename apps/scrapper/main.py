@@ -32,7 +32,7 @@ def do_scrape():
                timeout=30)
     print(f"Sent {len(combined)} jobs to NestJS")
 
-scheduler.add_job(do_scrape, "interval", hours=6)
+scheduler.add_job(do_scrape, "interval", hours=SCRAPE_INTERVAL_HOURS)
 scheduler.start()
 
 @app.post("/scrape")

@@ -1,10 +1,5 @@
 import { Controller, HttpCode, Post, UseGuards } from '@nestjs/common';
-import {
-  ApiHeader,
-  ApiOperation,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
+import { ApiHeader, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
 import { SeedResultDto } from './dto/seed-result.dto';
 import { SeedSecretGuard } from './guards/seed-secret.guard';

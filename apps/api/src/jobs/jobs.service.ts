@@ -4,20 +4,11 @@ import { In, Repository } from 'typeorm';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
+import {
+  IngestResult,
+  PaginatedJobs,
+} from './dto/jobs-response.dto';
 import { Job } from './entities/job.entity';
-
-export interface IngestResult {
-  received: number;
-  inserted: number;
-  skipped: number;
-}
-
-export interface PaginatedJobs {
-  data: Job[];
-  total: number;
-  page: number;
-  limit: number;
-}
 
 @Injectable()
 export class JobsService {

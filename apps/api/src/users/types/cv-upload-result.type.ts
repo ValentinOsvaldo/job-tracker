@@ -1,5 +1,3 @@
-export interface CvUploadResult {
-  filename: string;
-  characters_extracted: number;
-  uploaded_at: Date;
-}
+import { CvUploadResultDto } from '../dto/cv-upload-result.dto';
+
+export type CvUploadResult = CvUploadResultDto;

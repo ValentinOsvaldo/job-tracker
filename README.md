@@ -707,29 +707,24 @@ res.cookie('refresh_token', refreshToken, {
 })
 ```
 
-### Seed script
-Los dos usuarios se crean una sola vez con un script, no hay registro público:
+### Seed endpoint
+Los dos usuarios se crean una sola vez con un endpoint protegido, no hay registro público. Requiere el header `X-Seed-Secret` que debe coincidir con la variable de entorno `SEED_SECRET`.
 
-```ts
-// apps/backend/src/seed.ts
-import * as bcrypt from 'bcrypt'
+```bash
+curl -X POST http://localhost:3000/seed \
+  -H "X-Seed-Secret: $SEED_SECRET"
+```
 
-const users = [
-  { name: 'Osvaldo', email: 'osvaldo@example.com', password: 'tu_password' },
-  { name: 'Guillermo', email: 'guillermo@example.com', password: 'su_password' },
-]
+Respuesta:
 
-for (const u of users) {
-  await userRepository.save({
-    ...u,
-    password_hash: await bcrypt.hash(u.password, 12),
-  })
+```json
+{
+  "created": ["osvaldo@example.com"],
+  "skipped": ["guillermo@example.com"]
 }
 ```
 
-```bash
-pnpm --filter backend seed
-```
+Las contraseñas se leen de `SEED_USER_OSVALDO_PASSWORD` y `SEED_USER_GUILLERMO_PASSWORD` en `.env`.
 
 ### Integración en Nuxt con `nuxt-auth-utils`
 ```bash

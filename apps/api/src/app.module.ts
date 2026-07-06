@@ -14,6 +14,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { GroqModule } from './groq/groq.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobAnalysesModule } from './job-analyses/job-analyses.module';
+import { SeedModule } from './seed/seed.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { JobAnalysesModule } from './job-analyses/job-analyses.module';
     ProfilesModule,
     JobAnalysesModule,
     GroqModule,
+    SeedModule,
   ],
   providers: [
     {

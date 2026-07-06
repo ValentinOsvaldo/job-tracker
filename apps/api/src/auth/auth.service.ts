@@ -11,11 +11,9 @@ import { PublicUser } from '../users/types/public-user.type';
 import { UsersService } from '../users/users.service';
 import { LoginDto } from './dto/login.dto';
 import { JwtPayload } from './strategies/jwt.strategy';
+import { AuthTokensResponseDto } from './dto/auth-response.dto';
 
-export interface AuthTokens {
-  accessToken: string;
-  refreshToken: string;
-}
+export type AuthTokens = AuthTokensResponseDto;
 
 @Injectable()
 export class AuthService {

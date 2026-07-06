@@ -9,6 +9,7 @@ import {
   getDatabaseEnvConfigFromConfigService,
 } from './config/database.config';
 import { UsersModule } from './users/users.module';
+import { JobsModule } from './jobs/jobs.module';
 
 @Module({
   imports: [
@@ -20,12 +21,13 @@ import { UsersModule } from './users/users.module';
           getDatabaseEnvConfigFromConfigService(configService),
         ),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: true,
       }),
       inject: [ConfigService],
     }),
     UsersModule,
     AuthModule,
+    JobsModule,
   ],
   providers: [
     {

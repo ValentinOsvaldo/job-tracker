@@ -13,5 +13,4 @@ config();
 export default new DataSource({
   ...createPostgresOptions(getDatabaseEnvConfigFromProcessEnv(process.env)),
   entities: [User, RefreshToken],
-  migrations: ['src/migrations/*.ts'],
 });

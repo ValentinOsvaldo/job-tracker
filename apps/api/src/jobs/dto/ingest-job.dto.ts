@@ -1,7 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsIn,
+  IsEnum,
   IsNumber,
   IsOptional,
   IsString,
@@ -9,7 +9,7 @@ import {
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { JobSource } from '../types/job-source.type';
+import { JobSource } from '../enums/job-source.enum';
 
 export class IngestJobDto {
   @IsString()
@@ -19,7 +19,7 @@ export class IngestJobDto {
   @IsUrl()
   job_url: string;
 
-  @IsIn(['linkedin', 'indeed'])
+  @IsEnum(JobSource)
   site: JobSource;
 
   @IsOptional()

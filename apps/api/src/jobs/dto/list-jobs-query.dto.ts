@@ -1,10 +1,10 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Max, Min } from 'class-validator';
-import { JobSource } from '../types/job-source.type';
+import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import { JobSource } from '../enums/job-source.enum';
 
 export class ListJobsQueryDto {
   @IsOptional()
-  @IsIn(['linkedin', 'indeed'])
+  @IsEnum(JobSource)
   source?: JobSource;
 
   @IsOptional()

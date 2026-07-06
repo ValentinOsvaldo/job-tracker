@@ -4,7 +4,7 @@ import {
   Entity,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { JobSource } from '../types/job-source.type';
+import { JobSource } from '../enums/job-source.enum';
 
 @Entity('jobs')
 export class Job {
@@ -26,7 +26,7 @@ export class Job {
   @Column({ type: 'varchar', length: 500, unique: true })
   url: string;
 
-  @Column({ type: 'varchar', length: 50 })
+  @Column({ type: 'enum', enum: JobSource })
   source: JobSource;
 
   @Column({ type: 'date', nullable: true })

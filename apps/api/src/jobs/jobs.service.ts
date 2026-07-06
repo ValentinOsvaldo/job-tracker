@@ -4,7 +4,6 @@ import { In, Repository } from 'typeorm';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import { Job } from './entities/job.entity';
-import { JobSource } from './types/job-source.type';
 
 export interface IngestResult {
   received: number;
@@ -36,7 +35,9 @@ export class JobsService {
       return { received, inserted: 0, skipped: received };
     }
 
-    const urls = jobs.map((job) => job.url).filter((url): url is string => !!url);
+    const urls = jobs
+      .map((job) => job.url)
+      .filter((url): url is string => !!url);
 
     const existingUrls = new Set(
       urls.length === 0
@@ -49,9 +50,7 @@ export class JobsService {
           ).map((job) => job.url),
     );
 
-    const newJobs = jobs.filter(
-      (job) => job.url && !existingUrls.has(job.url),
-    ) as Partial<Job>[];
+    const newJobs = jobs.filter((job) => job.url && !existingUrls.has(job.url));
 
     if (newJobs.length > 0) {
       await this.jobsRepository.upsert(newJobs, {
@@ -70,7 +69,7 @@ export class JobsService {
   async findAll(query: ListJobsQueryDto): Promise<PaginatedJobs> {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where = query.source ? { source: query.source as JobSource } : {};
+    const where = query.source ? { source: query.source } : {};
 
     const [data, total] = await this.jobsRepository.findAndCount({
       where,

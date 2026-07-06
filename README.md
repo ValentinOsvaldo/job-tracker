@@ -184,7 +184,7 @@ def scrape_now():
 ```
 fastapi
 uvicorn
-jobspy
+python-jobspy
 apscheduler
 httpx
 ```

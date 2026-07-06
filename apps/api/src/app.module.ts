@@ -10,6 +10,7 @@ import {
 } from './config/database.config';
 import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
+import { GroqModule } from './groq/groq.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobAnalysesModule } from './job-analyses/job-analyses.module';
 
@@ -32,6 +33,7 @@ import { JobAnalysesModule } from './job-analyses/job-analyses.module';
     JobsModule,
     ProfilesModule,
     JobAnalysesModule,
+    GroqModule,
   ],
   providers: [
     {

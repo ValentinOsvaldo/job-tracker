@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
+import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import { Job } from './entities/job.entity';
@@ -23,6 +24,7 @@ export class JobsService {
   constructor(
     @InjectRepository(Job)
     private readonly jobsRepository: Repository<Job>,
+    private readonly jobAnalysesService: JobAnalysesService,
   ) {}
 
   async ingest(records: IngestJobDto[]): Promise<IngestResult> {
@@ -57,6 +59,15 @@ export class JobsService {
         conflictPaths: ['url'],
         skipUpdateIfNoValuesChanged: true,
       });
+
+      const insertedJobs = await this.jobsRepository.find({
+        where: { url: In(newJobs.map((job) => job.url as string)) },
+        select: { id: true },
+      });
+
+      this.jobAnalysesService.queueAnalysesForJobs(
+        insertedJobs.map((job) => job.id),
+      );
     }
 
     return {

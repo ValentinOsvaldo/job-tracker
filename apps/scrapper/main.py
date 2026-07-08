@@ -123,6 +123,7 @@ def fetch_jobs(params: ScrapeParams | None = None) -> pd.DataFrame:
                 location=location,
                 results_wanted=scrape.results_wanted,
                 hours_old=scrape.hours_old,
+                country_indeed="Mexico"
             )
             all_jobs.append(jobs)
 

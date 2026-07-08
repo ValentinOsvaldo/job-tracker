@@ -1,8 +1,4 @@
-import {
-  ApiHideProperty,
-  ApiProperty,
-  ApiPropertyOptional,
-} from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -51,7 +47,7 @@ export class Job {
   @CreateDateColumn({ type: 'timestamptz' })
   scraped_at: Date;
 
-  @ApiHideProperty()
+  @ApiProperty({ type: () => [JobAnalysis] })
   @OneToMany(() => JobAnalysis, (analysis) => analysis.job)
   analyses: JobAnalysis[];
 }

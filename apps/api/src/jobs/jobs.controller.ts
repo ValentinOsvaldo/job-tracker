@@ -8,6 +8,7 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Req,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,6 +19,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Public } from '../auth/decorators/public.decorator';
+import { PublicUser } from '../users/types/public-user.type';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import {
@@ -26,6 +28,7 @@ import {
 } from './dto/jobs-response.dto';
 import { Job } from './entities/job.entity';
 import { JobsService } from './jobs.service';
+import { JobsListQuery } from './types/jobs-list-query.type';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -53,8 +56,16 @@ export class JobsController {
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List jobs with pagination' })
   @ApiResponse({ status: 200, type: PaginatedJobsResponseDto })
-  findAll(@Query() query: ListJobsQueryDto) {
-    return this.jobsService.findAll(query);
+  findAll(@Req() req: { user: PublicUser }, @Query() query: ListJobsQueryDto) {
+    const listQuery: JobsListQuery = {
+      source: query.source,
+      profileId: query.profile_id,
+      minScore: query.min_score,
+      page: query.page ?? 1,
+      limit: query.limit ?? 20,
+    };
+
+    return this.jobsService.findAll(req.user.id, listQuery);
   }
 
   @Get(':id')
@@ -63,7 +74,10 @@ export class JobsController {
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: Job })
   @ApiResponse({ status: 404, description: 'Job not found' })
-  findOne(@Param('id', ParseUUIDPipe) id: string) {
-    return this.jobsService.findOne(id);
+  findOne(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.jobsService.findOne(req.user.id, id);
   }
 }

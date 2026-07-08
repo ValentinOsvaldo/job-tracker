@@ -1,6 +1,14 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsEnum, IsInt, IsOptional, Max, Min } from 'class-validator';
+import {
+  IsEnum,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsUUID,
+  Max,
+  Min,
+} from 'class-validator';
 import { JobSource } from '../enums/job-source.enum';
 
 export class ListJobsQueryDto {
@@ -9,12 +17,25 @@ export class ListJobsQueryDto {
   @IsEnum(JobSource)
   source?: JobSource;
 
+  @ApiPropertyOptional({ format: 'uuid' })
+  @IsOptional()
+  @IsUUID()
+  profile_id?: string;
+
+  @ApiPropertyOptional({ minimum: 0, maximum: 10, example: 7 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  @Max(10)
+  min_score?: number;
+
   @ApiPropertyOptional({ minimum: 1, default: 1, example: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  page?: number = 1;
+  page?: number;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 100, default: 20, example: 20 })
   @IsOptional()
@@ -22,5 +43,5 @@ export class ListJobsQueryDto {
   @IsInt()
   @Min(1)
   @Max(100)
-  limit?: number = 20;
+  limit?: number;
 }

@@ -35,7 +35,7 @@ export class JobAnalysis {
   @Column({ type: 'uuid' })
   profile_id: string;
 
-  @ApiHideProperty()
+  @ApiProperty({ type: () => SearchProfile })
   @ManyToOne(() => SearchProfile, (profile) => profile.analyses, {
     onDelete: 'CASCADE',
   })

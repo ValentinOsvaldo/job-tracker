@@ -107,6 +107,18 @@ export class JobsService {
     return result;
   }
 
+  async removeAll(): Promise<{ deleted: number }> {
+    const result = await this.jobsRepository
+      .createQueryBuilder()
+      .delete()
+      .execute();
+
+    const deleted = result.affected ?? 0;
+    this.logger.log(`Deleted all jobs: count=${deleted}`);
+
+    return { deleted };
+  }
+
   async findAll(userId: string, query: JobsListQuery): Promise<PaginatedJobs> {
     const { page, limit, profileId, minScore, source } = query;
 

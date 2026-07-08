@@ -15,6 +15,14 @@ export class IngestResultDto {
   rejected: number;
 }
 
+export class DeleteAllJobsResultDto {
+  @ApiProperty({ example: true })
+  ok: boolean;
+
+  @ApiProperty({ example: 42, description: 'Number of jobs deleted' })
+  deleted: number;
+}
+
 export class PaginatedJobsResponseDto {
   @ApiProperty({ type: [Job] })
   data: Job[];

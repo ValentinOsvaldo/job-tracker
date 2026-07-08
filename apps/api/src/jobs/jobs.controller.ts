@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
@@ -29,6 +30,7 @@ import { PublicUser } from '../users/types/public-user.type';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import {
+  DeleteAllJobsResultDto,
   IngestResultDto,
   PaginatedJobsResponseDto,
 } from './dto/jobs-response.dto';
@@ -84,6 +86,16 @@ export class JobsController {
     };
 
     return this.jobsService.findAll(req.user.id, listQuery);
+  }
+
+  @Delete()
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Delete all jobs and their analyses' })
+  @ApiResponse({ status: 200, type: DeleteAllJobsResultDto })
+  async removeAll() {
+    const { deleted } = await this.jobsService.removeAll();
+    return { ok: true, deleted };
   }
 
   @Post(':id/analyses/regenerate')

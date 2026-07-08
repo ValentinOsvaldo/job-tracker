@@ -23,7 +23,9 @@ export class SeedSecretGuard implements CanActivate {
     const providedSecret = request.headers['x-seed-secret'];
 
     if (!providedSecret || providedSecret !== seedSecret) {
-      throw new UnauthorizedException('Invalid or missing X-Seed-Secret header');
+      throw new UnauthorizedException(
+        'Invalid or missing X-Seed-Secret header',
+      );
     }
 
     return true;

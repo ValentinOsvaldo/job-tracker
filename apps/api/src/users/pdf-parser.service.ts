@@ -1,14 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { BadRequestException, Injectable } from '@nestjs/common';
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 @Injectable()
 export class PdfParserService {
   async extractText(buffer: Buffer): Promise<string> {
+    const parser = new PDFParse({ data: buffer });
+
     try {
-      const { text } = await pdfParse(buffer);
+      const { text } = await parser.getText();
       return text.trim();
-    } catch {
+    } catch (error) {
+      console.error(error);
       throw new BadRequestException('Invalid or unreadable PDF file');
+    } finally {
+      await parser.destroy();
     }
   }
 }

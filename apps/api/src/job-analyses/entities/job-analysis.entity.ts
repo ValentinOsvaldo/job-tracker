@@ -1,4 +1,8 @@
-import { ApiHideProperty, ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -58,7 +62,9 @@ export class JobAnalysis {
   @Column({ type: 'text', array: true, default: [] })
   missing_skills: string[];
 
-  @ApiProperty({ example: 'Strong match for frontend role with React experience.' })
+  @ApiProperty({
+    example: 'Strong match for frontend role with React experience.',
+  })
   @Column({ type: 'text' })
   summary: string;
 

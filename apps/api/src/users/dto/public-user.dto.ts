@@ -1,7 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PublicUserDto {
-  @ApiProperty({ format: 'uuid', example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890' })
+  @ApiProperty({
+    format: 'uuid',
+    example: 'a1b2c3d4-e5f6-7890-abcd-ef1234567890',
+  })
   id: string;
 
   @ApiProperty({ example: 'Osvaldo' })

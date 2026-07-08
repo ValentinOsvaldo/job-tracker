@@ -27,7 +27,7 @@ def fetch_jobs() -> pd.DataFrame:
 
 def do_scrape():
     combined = fetch_jobs()
-    httpx.post(f"{NESTJS_URL}/jobs/ingest",
+    httpx.post(f"{NESTJS_URL}/api/jobs/ingest",
                json=combined.to_dict(orient="records"),
                timeout=30)
     print(f"Sent {len(combined)} jobs to NestJS")

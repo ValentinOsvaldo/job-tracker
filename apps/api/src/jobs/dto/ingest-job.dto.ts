@@ -6,7 +6,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  IsUrl,
+  Matches,
   MinLength,
   ValidateNested,
 } from 'class-validator';
@@ -19,7 +19,9 @@ export class IngestJobDto {
   title: string;
 
   @ApiProperty({ example: 'https://linkedin.com/jobs/view/123456' })
-  @IsUrl()
+  @IsString()
+  @MinLength(1)
+  @Matches(/^https?:\/\//)
   job_url: string;
 
   @ApiProperty({ enum: JobSource, example: JobSource.LINKEDIN })

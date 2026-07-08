@@ -10,6 +10,9 @@ export class IngestResultDto {
 
   @ApiProperty({ example: 2 })
   skipped: number;
+
+  @ApiProperty({ example: 0 })
+  rejected: number;
 }
 
 export class PaginatedJobsResponseDto {

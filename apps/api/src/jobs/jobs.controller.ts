@@ -1,10 +1,10 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
   HttpCode,
   Param,
-  ParseArrayPipe,
   ParseUUIDPipe,
   Post,
   Query,
@@ -41,10 +41,11 @@ export class JobsController {
   })
   @ApiBody({ type: [IngestJobDto] })
   @ApiResponse({ status: 200, type: IngestResultDto })
-  ingest(
-    @Body(new ParseArrayPipe({ items: IngestJobDto }))
-    records: IngestJobDto[],
-  ) {
+  ingest(@Body() records: Record<string, unknown>[]) {
+    if (!Array.isArray(records)) {
+      throw new BadRequestException('Body must be a JSON array of job records');
+    }
+
     return this.jobsService.ingest(records);
   }
 

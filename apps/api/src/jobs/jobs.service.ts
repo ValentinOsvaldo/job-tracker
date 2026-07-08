@@ -1,5 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { plainToInstance } from 'class-transformer';
+import { validateSync } from 'class-validator';
 import { In, Repository } from 'typeorm';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { IngestJobDto } from './dto/ingest-job.dto';
@@ -9,20 +11,43 @@ import { Job } from './entities/job.entity';
 
 @Injectable()
 export class JobsService {
+  private readonly logger = new Logger(JobsService.name);
+
   constructor(
     @InjectRepository(Job)
     private readonly jobsRepository: Repository<Job>,
     private readonly jobAnalysesService: JobAnalysesService,
   ) {}
 
-  async ingest(records: IngestJobDto[]): Promise<IngestResult> {
+  async ingest(records: Record<string, unknown>[]): Promise<IngestResult> {
     const received = records.length;
-    const jobs = records
-      .filter((record) => record.title && record.job_url)
-      .map((record) => this.mapIngestRecord(record));
+    let rejected = 0;
+    const validRecords: IngestJobDto[] = [];
+
+    for (const raw of records) {
+      const validated = this.validateIngestRecord(raw);
+
+      if (!validated) {
+        rejected++;
+        continue;
+      }
+
+      validRecords.push(validated);
+    }
+
+    const jobs = validRecords.map((record) => this.mapIngestRecord(record));
 
     if (jobs.length === 0) {
-      return { received, inserted: 0, skipped: received };
+      const result: IngestResult = {
+        received,
+        inserted: 0,
+        skipped: 0,
+        rejected,
+      };
+      this.logger.log(
+        `Ingest complete: received=${received}, inserted=0, skipped=0, rejected=${rejected}`,
+      );
+      return result;
     }
 
     const urls = jobs
@@ -58,11 +83,18 @@ export class JobsService {
       );
     }
 
-    return {
+    const result: IngestResult = {
       received,
       inserted: newJobs.length,
-      skipped: received - newJobs.length,
+      skipped: validRecords.length - newJobs.length,
+      rejected,
     };
+
+    this.logger.log(
+      `Ingest complete: received=${result.received}, inserted=${result.inserted}, skipped=${result.skipped}, rejected=${result.rejected}`,
+    );
+
+    return result;
   }
 
   async findAll(query: ListJobsQueryDto): Promise<PaginatedJobs> {
@@ -88,6 +120,25 @@ export class JobsService {
     }
 
     return job;
+  }
+
+  private validateIngestRecord(
+    raw: Record<string, unknown>,
+  ): IngestJobDto | null {
+    const record = plainToInstance(IngestJobDto, raw, {
+      enableImplicitConversion: true,
+    });
+    const errors = validateSync(record, { whitelist: true });
+
+    if (errors.length > 0) {
+      return null;
+    }
+
+    if (!record.title?.trim() || !record.job_url?.trim()) {
+      return null;
+    }
+
+    return record;
   }
 
   private mapIngestRecord(record: IngestJobDto): Partial<Job> {

@@ -19,6 +19,15 @@ from config import (
 
 SiteName = Literal["linkedin", "indeed"]
 DEFAULT_SITES: list[SiteName] = ["linkedin", "indeed"]
+INGEST_FIELDS = (
+    "title",
+    "job_url",
+    "site",
+    "company",
+    "location",
+    "description",
+    "date_posted",
+)
 
 app = FastAPI()
 scheduler = BackgroundScheduler()
@@ -154,7 +163,11 @@ def records_for_json(df: pd.DataFrame) -> list[dict]:
 
     records = df.to_dict(orient="records")
     serialized = [
-        {key: to_json_value(val) for key, val in record.items()}
+        {
+            key: to_json_value(record[key])
+            for key in INGEST_FIELDS
+            if key in record
+        }
         for record in records
     ]
     return [record for record in serialized if is_valid_record(record)]
@@ -192,18 +205,29 @@ def scrape_now(body: ScrapeRequest | None = None):
         result = do_scrape(params)
         return {"ok": True, **result}
     except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        hint = None
+        if status == 413:
+            hint = "NestJS rejected the payload (too large). Redeploy the API with an increased body size limit."
         raise HTTPException(
             status_code=502,
             detail={
                 "ok": False,
-                "status": exc.response.status_code,
+                "status": status,
                 "error": exc.response.text,
+                "hint": hint,
+                "nestjs_url": NESTJS_URL.rstrip("/"),
             },
         ) from exc
     except httpx.HTTPError as exc:
         raise HTTPException(
             status_code=502,
-            detail={"ok": False, "error": str(exc)},
+            detail={
+                "ok": False,
+                "error": str(exc),
+                "hint": "Could not reach NestJS. Check NESTJS_URL and that the API is running.",
+                "nestjs_url": NESTJS_URL.rstrip("/"),
+            },
         ) from exc
 
 

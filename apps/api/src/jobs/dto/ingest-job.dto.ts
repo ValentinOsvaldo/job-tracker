@@ -51,6 +51,31 @@ export class IngestJobDto {
   @IsOptional()
   @IsNumber()
   date_posted?: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'fulltime' })
+  @IsOptional()
+  @IsString()
+  job_type?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 110000 })
+  @IsOptional()
+  @IsNumber()
+  min_amount?: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 135000 })
+  @IsOptional()
+  @IsNumber()
+  max_amount?: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'yearly' })
+  @IsOptional()
+  @IsString()
+  interval?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'USD' })
+  @IsOptional()
+  @IsString()
+  currency?: string | null;
 }
 
 export class IngestJobsDto {

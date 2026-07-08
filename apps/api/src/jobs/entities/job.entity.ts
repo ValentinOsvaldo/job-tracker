@@ -43,6 +43,26 @@ export class Job {
   @Column({ type: 'date', nullable: true })
   date_posted: Date | null;
 
+  @ApiPropertyOptional({ nullable: true, example: 'fulltime' })
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  job_type: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 110000 })
+  @Column({ type: 'int', nullable: true })
+  salary_min: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 135000 })
+  @Column({ type: 'int', nullable: true })
+  salary_max: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'yearly' })
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  salary_interval: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'USD' })
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  salary_currency: string | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })
   scraped_at: Date;

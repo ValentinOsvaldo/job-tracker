@@ -27,6 +27,11 @@ INGEST_FIELDS = (
     "location",
     "description",
     "date_posted",
+    "job_type",
+    "min_amount",
+    "max_amount",
+    "interval",
+    "currency",
 )
 
 app = FastAPI()
@@ -135,6 +140,8 @@ def fetch_jobs(params: ScrapeParams | None = None) -> pd.DataFrame:
 
 
 def to_json_value(value):
+    if hasattr(value, "item"):
+        return to_json_value(value.item())
     if value is None or (isinstance(value, float) and pd.isna(value)):
         return None
     if isinstance(value, (datetime, pd.Timestamp)):
@@ -142,6 +149,8 @@ def to_json_value(value):
     if isinstance(value, date):
         dt = datetime.combine(value, datetime.min.time(), tzinfo=timezone.utc)
         return int(dt.timestamp() * 1000)
+    if isinstance(value, float):
+        return int(value) if value.is_integer() else value
     return value
 
 

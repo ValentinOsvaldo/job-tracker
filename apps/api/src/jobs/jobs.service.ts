@@ -286,7 +286,20 @@ export class JobsService {
       location: record.location ?? null,
       description: record.description ?? null,
       date_posted: this.parseDatePosted(record.date_posted),
+      job_type: record.job_type ?? null,
+      salary_min: this.parseSalaryAmount(record.min_amount),
+      salary_max: this.parseSalaryAmount(record.max_amount),
+      salary_interval: record.interval ?? null,
+      salary_currency: record.currency ?? null,
     };
+  }
+
+  private parseSalaryAmount(amount?: number | null): number | null {
+    if (amount === null || amount === undefined || Number.isNaN(amount)) {
+      return null;
+    }
+
+    return Math.round(amount);
   }
 
   private parseDatePosted(datePosted?: number | null): Date | null {

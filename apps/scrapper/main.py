@@ -1,31 +1,128 @@
 from datetime import date, datetime, timezone
+from typing import Literal
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from jobspy import scrape_jobs
 from apscheduler.schedulers.background import BackgroundScheduler
 import httpx
 import pandas as pd
-from config import *
+from pydantic import BaseModel, Field
+
+from config import (
+    HOURS_OLD,
+    LOCATIONS,
+    NESTJS_URL,
+    RESULTS,
+    SCRAPE_INTERVAL_HOURS,
+    SEARCH_TERMS,
+)
+
+SiteName = Literal["linkedin", "indeed"]
+DEFAULT_SITES: list[SiteName] = ["linkedin", "indeed"]
 
 app = FastAPI()
 scheduler = BackgroundScheduler()
 
-def fetch_jobs() -> pd.DataFrame:
+
+class ScrapeParams(BaseModel):
+    sites: list[SiteName] = Field(default_factory=lambda: list(DEFAULT_SITES))
+    search_terms: list[str] = Field(min_length=1)
+    locations: list[str] = Field(min_length=1)
+    results_wanted: int = Field(default=30, ge=1, le=100)
+    hours_old: int = Field(default=48, ge=1)
+
+
+class ScrapeRequest(BaseModel):
+    sites: list[SiteName] | None = None
+    search_terms: list[str] | None = None
+    locations: list[str] | None = None
+    results_wanted: int | None = Field(None, ge=1, le=100)
+    hours_old: int | None = Field(None, ge=1)
+
+
+def default_scrape_params() -> ScrapeParams:
+    return ScrapeParams(
+        sites=list(DEFAULT_SITES),
+        search_terms=SEARCH_TERMS,
+        locations=LOCATIONS,
+        results_wanted=RESULTS,
+        hours_old=HOURS_OLD,
+    )
+
+
+def resolve_scrape_params(request: ScrapeRequest | None = None) -> ScrapeParams:
+    defaults = default_scrape_params()
+
+    if request is None:
+        return defaults
+
+    return ScrapeParams(
+        sites=request.sites or defaults.sites,
+        search_terms=request.search_terms or defaults.search_terms,
+        locations=request.locations or defaults.locations,
+        results_wanted=request.results_wanted or defaults.results_wanted,
+        hours_old=request.hours_old or defaults.hours_old,
+    )
+
+
+def parse_csv_query(value: str | None) -> list[str] | None:
+    if not value:
+        return None
+    items = [item.strip() for item in value.split(",") if item.strip()]
+    return items or None
+
+
+def scrape_params_from_query(
+    sites: str | None = None,
+    search_terms: str | None = None,
+    locations: str | None = None,
+    results_wanted: int | None = Query(None, ge=1, le=100),
+    hours_old: int | None = Query(None, ge=1),
+) -> ScrapeParams:
+    parsed_sites = parse_csv_query(sites)
+    valid_sites: list[SiteName] | None = None
+
+    if parsed_sites:
+        invalid = [site for site in parsed_sites if site not in ("linkedin", "indeed")]
+        if invalid:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid sites: {invalid}. Use linkedin and/or indeed.",
+            )
+        valid_sites = parsed_sites  # type: ignore[assignment]
+
+    return resolve_scrape_params(
+        ScrapeRequest(
+            sites=valid_sites,
+            search_terms=parse_csv_query(search_terms),
+            locations=parse_csv_query(locations),
+            results_wanted=results_wanted,
+            hours_old=hours_old,
+        )
+    )
+
+
+def fetch_jobs(params: ScrapeParams | None = None) -> pd.DataFrame:
+    scrape = params or default_scrape_params()
     all_jobs = []
 
-    for term in SEARCH_TERMS:
-        for location in LOCATIONS:
+    for term in scrape.search_terms:
+        for location in scrape.locations:
             jobs = scrape_jobs(
-                site_name=["linkedin", "indeed"],
+                site_name=scrape.sites,
                 search_term=term,
                 location=location,
-                results_wanted=RESULTS,
-                hours_old=HOURS_OLD,
+                results_wanted=scrape.results_wanted,
+                hours_old=scrape.hours_old,
             )
             all_jobs.append(jobs)
 
+    if not all_jobs:
+        return pd.DataFrame()
+
     combined = pd.concat(all_jobs).drop_duplicates(subset=["job_url"])
     return combined.where(pd.notna(combined), other=None)
+
 
 def to_json_value(value):
     if value is None or (isinstance(value, float) and pd.isna(value)):
@@ -36,6 +133,7 @@ def to_json_value(value):
         dt = datetime.combine(value, datetime.min.time(), tzinfo=timezone.utc)
         return int(dt.timestamp() * 1000)
     return value
+
 
 def is_valid_record(record: dict) -> bool:
     title = record.get("title")
@@ -49,7 +147,11 @@ def is_valid_record(record: dict) -> bool:
         and site in ("linkedin", "indeed")
     )
 
+
 def records_for_json(df: pd.DataFrame) -> list[dict]:
+    if df.empty:
+        return []
+
     records = df.to_dict(orient="records")
     serialized = [
         {key: to_json_value(val) for key, val in record.items()}
@@ -57,8 +159,10 @@ def records_for_json(df: pd.DataFrame) -> list[dict]:
     ]
     return [record for record in serialized if is_valid_record(record)]
 
-def do_scrape() -> dict:
-    combined = fetch_jobs()
+
+def do_scrape(params: ScrapeParams | None = None) -> dict:
+    scrape = params or default_scrape_params()
+    combined = fetch_jobs(scrape)
     payload = records_for_json(combined)
     base_url = NESTJS_URL.rstrip("/")
     response = httpx.post(
@@ -69,15 +173,23 @@ def do_scrape() -> dict:
     response.raise_for_status()
     ingest = response.json()
     print(f"Sent {len(payload)} jobs to NestJS: {ingest}")
-    return {"sent": len(payload), "ingest": ingest}
+    return {
+        "sent": len(payload),
+        "ingest": ingest,
+        "params": scrape.model_dump(),
+    }
+
 
 scheduler.add_job(do_scrape, "interval", hours=SCRAPE_INTERVAL_HOURS)
 scheduler.start()
 
+
 @app.post("/scrape")
-def scrape_now():
+def scrape_now(body: ScrapeRequest | None = None):
+    params = resolve_scrape_params(body)
+
     try:
-        result = do_scrape()
+        result = do_scrape(params)
         return {"ok": True, **result}
     except httpx.HTTPStatusError as exc:
         raise HTTPException(
@@ -94,6 +206,35 @@ def scrape_now():
             detail={"ok": False, "error": str(exc)},
         ) from exc
 
+
 @app.get("/scrape/preview")
-def scrape_preview():
-    return records_for_json(fetch_jobs())
+def scrape_preview(
+    sites: str | None = Query(
+        None,
+        description="Comma-separated: linkedin, indeed",
+        examples=["linkedin", "linkedin,indeed"],
+    ),
+    search_terms: str | None = Query(
+        None,
+        description="Comma-separated search terms",
+        examples=["software engineer,frontend developer"],
+    ),
+    locations: str | None = Query(
+        None,
+        description="Comma-separated locations",
+        examples=["mexico,remote"],
+    ),
+    results_wanted: int | None = Query(None, ge=1, le=100),
+    hours_old: int | None = Query(None, ge=1),
+):
+    params = scrape_params_from_query(
+        sites=sites,
+        search_terms=search_terms,
+        locations=locations,
+        results_wanted=results_wanted,
+        hours_old=hours_old,
+    )
+    return {
+        "params": params.model_dump(),
+        "jobs": records_for_json(fetch_jobs(params)),
+    }

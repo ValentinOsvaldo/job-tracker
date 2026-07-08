@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -16,6 +17,8 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RegenerateAnalysesResultDto } from '../job-analyses/dto/regenerate-analyses-result.dto';
+import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { OkResponseDto } from '../common/dto/ok-response.dto';
 import { PublicUser } from '../users/types/public-user.type';
 import { CreateProfileDto } from './dto/create-profile.dto';
@@ -27,7 +30,10 @@ import { ProfilesService } from './profiles.service';
 @ApiBearerAuth('access-token')
 @Controller('profiles')
 export class ProfilesController {
-  constructor(private readonly profilesService: ProfilesService) {}
+  constructor(
+    private readonly profilesService: ProfilesService,
+    private readonly jobAnalysesService: JobAnalysesService,
+  ) {}
 
   @Get()
   @ApiOperation({ summary: 'List search profiles for the current user' })
@@ -54,6 +60,18 @@ export class ProfilesController {
     @Body() dto: UpdateProfileDto,
   ) {
     return this.profilesService.update(req.user.id, id, dto);
+  }
+
+  @Post(':id/analyses/regenerate')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Regenerate AI analyses for all jobs on a profile' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: RegenerateAnalysesResultDto })
+  regenerateAnalyses(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.jobAnalysesService.regenerateForProfile(req.user.id, id);
   }
 
   @Delete(':id')

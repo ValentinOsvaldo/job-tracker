@@ -1,4 +1,4 @@
-export interface GroqAnalysisResult {
+export interface JobAnalysisResult {
   fit_score: number;
   matched_skills: string[];
   missing_skills: string[];
@@ -10,7 +10,7 @@ export interface GroqAnalysisResult {
   benefits_is_inferred: boolean;
 }
 
-export function parseGroqAnalysisResult(raw: string): GroqAnalysisResult {
+export function parseAnalysisResult(raw: string): JobAnalysisResult {
   const cleaned = raw
     .trim()
     .replace(/^```json\s*/i, '')
@@ -19,14 +19,14 @@ export function parseGroqAnalysisResult(raw: string): GroqAnalysisResult {
 
   const parsed: unknown = JSON.parse(cleaned);
 
-  if (!isGroqAnalysisResult(parsed)) {
-    throw new Error('Invalid Groq analysis response shape');
+  if (!isJobAnalysisResult(parsed)) {
+    throw new Error('Invalid job analysis response shape');
   }
 
   return parsed;
 }
 
-function isGroqAnalysisResult(value: unknown): value is GroqAnalysisResult {
+function isJobAnalysisResult(value: unknown): value is JobAnalysisResult {
   if (!value || typeof value !== 'object') {
     return false;
   }

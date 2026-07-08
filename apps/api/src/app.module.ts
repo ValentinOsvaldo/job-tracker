@@ -11,7 +11,7 @@ import {
 } from './config/database.config';
 import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
-import { GroqModule } from './groq/groq.module';
+import { AiModule } from './ai/ai.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobAnalysesModule } from './job-analyses/job-analyses.module';
 import { SeedModule } from './seed/seed.module';
@@ -38,7 +38,7 @@ import { SeedModule } from './seed/seed.module';
     JobsModule,
     ProfilesModule,
     JobAnalysesModule,
-    GroqModule,
+    AiModule,
     SeedModule,
   ],
   providers: [

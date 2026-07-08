@@ -1,11 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { GroqService } from '../groq/groq.service';
+import { AI_JOB_ANALYZER } from '../ai/ai.constants';
+import { JobAnalyzer } from '../ai/interfaces/job-analyzer.interface';
 import { Job } from '../jobs/entities/job.entity';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
+import { RegenerateAnalysesResult } from './dto/regenerate-analyses-result.dto';
 import { JobAnalysis } from './entities/job-analysis.entity';
 import { CreateJobAnalysisInput } from './types/create-job-analysis.input';
 
@@ -13,6 +21,10 @@ interface AnalysisTask {
   job: Job;
   profile: SearchProfile;
   user: User;
+}
+
+interface TaskOptions {
+  force?: boolean;
 }
 
 @Injectable()
@@ -26,7 +38,8 @@ export class JobAnalysesService {
     private readonly jobsRepository: Repository<Job>,
     @InjectRepository(SearchProfile)
     private readonly profilesRepository: Repository<SearchProfile>,
-    private readonly groqService: GroqService,
+    @Inject(AI_JOB_ANALYZER)
+    private readonly jobAnalyzer: JobAnalyzer,
     private readonly configService: ConfigService,
   ) {}
 
@@ -96,6 +109,95 @@ export class JobAnalysesService {
       });
   }
 
+  async regenerateForJob(
+    userId: string,
+    jobId: string,
+    profileId?: string,
+  ): Promise<RegenerateAnalysesResult> {
+    const job = await this.jobsRepository.findOneBy({ id: jobId });
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    const profiles = await this.getUserEligibleProfiles(userId, profileId);
+
+    if (profiles.length === 0) {
+      throw new BadRequestException(
+        profileId
+          ? `Profile with id ${profileId} not found or has no CV`
+          : 'No active profiles with CV found for this user',
+      );
+    }
+
+    const tasks = await this.buildTasks([job], profiles, { force: true });
+
+    void this.runBatch(tasks, { force: true }).catch((error: unknown) => {
+      this.logger.error(
+        `Failed to regenerate analyses for job ${jobId}`,
+        error,
+      );
+    });
+
+    return {
+      queued: tasks.length,
+      scope: 'job',
+      job_id: jobId,
+    };
+  }
+
+  async regenerateForProfile(
+    userId: string,
+    profileId: string,
+  ): Promise<RegenerateAnalysesResult> {
+    const profile = await this.profilesRepository.findOne({
+      where: { id: profileId, user_id: userId },
+      relations: { user: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(`Profile with id ${profileId} not found`);
+    }
+
+    if (!profile.user?.cv_text) {
+      throw new BadRequestException(
+        `Profile with id ${profileId} requires an uploaded CV before analysis`,
+      );
+    }
+
+    const jobs = await this.jobsRepository.find();
+    const tasks = await this.buildTasks(jobs, [profile], { force: true });
+
+    void this.runBatch(tasks, { force: true }).catch((error: unknown) => {
+      this.logger.error(
+        `Failed to regenerate analyses for profile ${profileId}`,
+        error,
+      );
+    });
+
+    return {
+      queued: tasks.length,
+      scope: 'profile',
+      profile_id: profileId,
+    };
+  }
+
+  private async getUserEligibleProfiles(
+    userId: string,
+    profileId?: string,
+  ): Promise<SearchProfile[]> {
+    const profiles = await this.profilesRepository.find({
+      where: {
+        user_id: userId,
+        is_active: true,
+        ...(profileId ? { id: profileId } : {}),
+      },
+      relations: { user: true },
+    });
+
+    return profiles.filter((profile) => !!profile.user?.cv_text);
+  }
+
   private async buildTasksForJobs(jobIds: string[]): Promise<AnalysisTask[]> {
     const jobs = await this.jobsRepository.find({
       where: { id: In(jobIds) },
@@ -137,26 +239,31 @@ export class JobAnalysesService {
   private async buildTasks(
     jobs: Job[],
     profiles: SearchProfile[],
+    options: TaskOptions = {},
   ): Promise<AnalysisTask[]> {
     if (jobs.length === 0 || profiles.length === 0) {
       return [];
     }
 
-    const existingAnalyses = await this.jobAnalysesRepository.find({
-      where: jobs.flatMap((job) =>
-        profiles.map((profile) => ({
-          job_id: job.id,
-          profile_id: profile.id,
-        })),
-      ),
-      select: { job_id: true, profile_id: true },
-    });
+    let existingKeys = new Set<string>();
 
-    const existingKeys = new Set(
-      existingAnalyses.map(
-        (analysis) => `${analysis.job_id}:${analysis.profile_id}`,
-      ),
-    );
+    if (!options.force) {
+      const existingAnalyses = await this.jobAnalysesRepository.find({
+        where: jobs.flatMap((job) =>
+          profiles.map((profile) => ({
+            job_id: job.id,
+            profile_id: profile.id,
+          })),
+        ),
+        select: { job_id: true, profile_id: true },
+      });
+
+      existingKeys = new Set(
+        existingAnalyses.map(
+          (analysis) => `${analysis.job_id}:${analysis.profile_id}`,
+        ),
+      );
+    }
 
     const tasks: AnalysisTask[] = [];
 
@@ -179,20 +286,31 @@ export class JobAnalysesService {
     return tasks;
   }
 
-  private async runBatch(tasks: AnalysisTask[]): Promise<void> {
+  private async runBatch(
+    tasks: AnalysisTask[],
+    options: TaskOptions = {},
+  ): Promise<void> {
     if (tasks.length === 0) {
       return;
     }
 
-    const batchSize = Number(this.configService.get('GROQ_BATCH_SIZE') ?? 5);
+    const batchSize = Number(
+      this.configService.get('AI_BATCH_SIZE') ??
+        this.configService.get('GROQ_BATCH_SIZE') ??
+        5,
+    );
     const batchDelayMs = Number(
-      this.configService.get('GROQ_BATCH_DELAY_MS') ?? 200,
+      this.configService.get('AI_BATCH_DELAY_MS') ??
+        this.configService.get('GROQ_BATCH_DELAY_MS') ??
+        200,
     );
 
     for (let index = 0; index < tasks.length; index += batchSize) {
       const chunk = tasks.slice(index, index + batchSize);
 
-      await Promise.allSettled(chunk.map((task) => this.analyzeAndSave(task)));
+      await Promise.allSettled(
+        chunk.map((task) => this.analyzeAndSave(task, options)),
+      );
 
       if (index + batchSize < tasks.length) {
         await this.sleep(batchDelayMs);
@@ -200,24 +318,28 @@ export class JobAnalysesService {
     }
   }
 
-  private async analyzeAndSave(task: AnalysisTask): Promise<void> {
+  private async analyzeAndSave(
+    task: AnalysisTask,
+    options: TaskOptions = {},
+  ): Promise<void> {
     const existing = await this.findByJobAndProfile(
       task.job.id,
       task.profile.id,
     );
 
-    if (existing) {
+    if (existing && !options.force) {
       return;
     }
 
     try {
-      const result = await this.groqService.analyzeJob(
+      const result = await this.jobAnalyzer.analyzeJob(
         task.job,
         task.profile,
         task.user,
       );
 
       await this.jobAnalysesRepository.save({
+        id: existing?.id,
         job_id: task.job.id,
         profile_id: task.profile.id,
         fit_score: result.fit_score,

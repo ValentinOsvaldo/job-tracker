@@ -15,9 +15,15 @@ import {
   ApiBody,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { RegenerateAnalysesResultDto } from '../job-analyses/dto/regenerate-analyses-result.dto';
+import { JobAnalysesService } from '../job-analyses/job-analyses.service';
+import { MarketTrendsResponseDto } from '../market-trends/dto/market-trends-response.dto';
+import { TrendsQueryDto } from '../market-trends/dto/trends-query.dto';
+import { MarketTrendsService } from '../market-trends/market-trends.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { PublicUser } from '../users/types/public-user.type';
 import { IngestJobDto } from './dto/ingest-job.dto';
@@ -33,7 +39,11 @@ import { JobsListQuery } from './types/jobs-list-query.type';
 @ApiTags('jobs')
 @Controller('jobs')
 export class JobsController {
-  constructor(private readonly jobsService: JobsService) {}
+  constructor(
+    private readonly jobsService: JobsService,
+    private readonly jobAnalysesService: JobAnalysesService,
+    private readonly marketTrendsService: MarketTrendsService,
+  ) {}
 
   @Public()
   @Post('ingest')
@@ -52,6 +62,14 @@ export class JobsController {
     return this.jobsService.ingest(records);
   }
 
+  @Get('trends')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get market trends from scraped jobs' })
+  @ApiResponse({ status: 200, type: MarketTrendsResponseDto })
+  getTrends(@Query() query: TrendsQueryDto) {
+    return this.marketTrendsService.getTrends(query);
+  }
+
   @Get()
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List jobs with pagination' })
@@ -66,6 +84,22 @@ export class JobsController {
     };
 
     return this.jobsService.findAll(req.user.id, listQuery);
+  }
+
+  @Post(':id/analyses/regenerate')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Regenerate AI analyses for a job' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiQuery({ name: 'profile_id', required: false, format: 'uuid' })
+  @ApiResponse({ status: 200, type: RegenerateAnalysesResultDto })
+  regenerateAnalyses(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('profile_id', new ParseUUIDPipe({ optional: true }))
+    profileId?: string,
+  ) {
+    return this.jobAnalysesService.regenerateForJob(req.user.id, id, profileId);
   }
 
   @Get(':id')

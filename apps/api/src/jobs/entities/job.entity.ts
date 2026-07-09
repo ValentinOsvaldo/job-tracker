@@ -59,10 +59,6 @@ export class Job {
   @Column({ type: 'varchar', length: 20, nullable: true })
   salary_interval: string | null;
 
-  @ApiPropertyOptional({ nullable: true, example: 'USD' })
-  @Column({ type: 'varchar', length: 10, nullable: true })
-  salary_currency: string | null;
-
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })
   scraped_at: Date;

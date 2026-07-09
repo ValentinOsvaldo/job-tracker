@@ -71,11 +71,6 @@ export class IngestJobDto {
   @IsOptional()
   @IsString()
   interval?: string | null;
-
-  @ApiPropertyOptional({ nullable: true, example: 'USD' })
-  @IsOptional()
-  @IsString()
-  currency?: string | null;
 }
 
 export class IngestJobsDto {

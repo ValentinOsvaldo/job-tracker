@@ -31,7 +31,6 @@ INGEST_FIELDS = (
     "min_amount",
     "max_amount",
     "interval",
-    "currency",
 )
 
 app = FastAPI()

@@ -290,7 +290,6 @@ export class JobsService {
       salary_min: this.parseSalaryAmount(record.min_amount),
       salary_max: this.parseSalaryAmount(record.max_amount),
       salary_interval: record.interval ?? null,
-      salary_currency: record.currency ?? null,
     };
   }
 

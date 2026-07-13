@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start:api": "pnpm --filter @job-tracker/api start",
-    "start:all": "concurrently \"pnpm run start:dev\""
+    "start:api": "pnpm --filter @job-tracker/api start:dev",
+    "start:web": "pnpm --filter @job-tracker/web dev",
+    "start:all": "concurrently \"pnpm run start:api\" \"pnpm run start:web\""
   },
   "keywords": [],
   "author": "",

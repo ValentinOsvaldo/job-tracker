@@ -2,6 +2,12 @@ packages:
   - 'apps/*'
   - 'packages/*'
 allowBuilds:
+  '@parcel/watcher': true
   '@scarf/scarf': true
   '@swc/core': true
   bcrypt: true
+  esbuild: true
+  maplibre-gl: false
+  sharp: true
+  unrs-resolver: true
+  vue-demi: true

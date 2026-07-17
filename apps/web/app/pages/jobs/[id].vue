@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { JobInterestStatus } from '~/types/api'
+
 definePageMeta({
   middleware: 'auth'
 })
@@ -15,6 +17,12 @@ const { data: job, isPending, error, refetch } = useQuery({
 const analyses = computed(() =>
   [...(job.value?.analyses ?? [])].sort((a, b) => b.fit_score - a.fit_score)
 )
+
+function onStatusUpdated(status: JobInterestStatus | null) {
+  if (job.value) {
+    job.value.user_status = status
+  }
+}
 </script>
 
 <template>
@@ -77,7 +85,7 @@ const analyses = computed(() =>
           <span v-if="job.location">{{ job.location }}</span>
         </p>
 
-        <div class="flex flex-wrap gap-3 pt-2">
+        <div class="flex flex-wrap items-center gap-3 pt-2">
           <UButton
             :to="job.url"
             target="_blank"
@@ -85,6 +93,12 @@ const analyses = computed(() =>
           >
             Open original
           </UButton>
+          <JobStatusControls
+            :job-id="job.id"
+            :status="job.user_status"
+            size="sm"
+            @updated="onStatusUpdated"
+          />
           <span class="text-sm text-muted self-center">
             Salary:
             {{ formatSalary(job.salary_min, job.salary_max) }}

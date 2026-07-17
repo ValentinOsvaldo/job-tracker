@@ -26,6 +26,12 @@ const links = computed(() => [
     to: '/cv',
     icon: 'i-lucide-file-text',
     active: route.path.startsWith('/cv')
+  },
+  {
+    label: 'Settings',
+    to: '/settings',
+    icon: 'i-lucide-settings',
+    active: route.path.startsWith('/settings')
   }
 ])
 </script>

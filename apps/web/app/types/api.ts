@@ -1,5 +1,6 @@
 export type ProfileRole = 'frontend' | 'backend' | 'fullstack' | 'mobile'
 export type JobSource = 'linkedin' | 'indeed'
+export type JobInterestStatus = 'liked' | 'disliked' | 'applied' | 'rejected'
 
 export interface PublicUser {
   id: string
@@ -64,6 +65,7 @@ export interface Job {
   salary_interval: string | null
   scraped_at: string
   analyses: JobAnalysis[]
+  user_status?: JobInterestStatus | null
 }
 
 export interface JobsListResponse {
@@ -77,8 +79,19 @@ export interface ListJobsQuery {
   source?: JobSource
   profile_id?: string
   min_score?: number
+  status?: JobInterestStatus
   page?: number
   limit?: number
+}
+
+export interface JobStatusResponse {
+  job_id: string
+  status: JobInterestStatus | null
+}
+
+export interface SeedResult {
+  created: string[]
+  skipped: string[]
 }
 
 export interface CvUploadResult {

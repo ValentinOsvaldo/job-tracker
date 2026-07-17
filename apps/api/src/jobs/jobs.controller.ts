@@ -7,6 +7,7 @@ import {
   HttpCode,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -35,6 +36,10 @@ import {
   PaginatedJobsResponseDto,
 } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
+import {
+  JobStatusResponseDto,
+  UpdateJobStatusDto,
+} from './dto/update-job-status.dto';
 import { Job } from './entities/job.entity';
 import { JobsService } from './jobs.service';
 import { JobsListQuery } from './types/jobs-list-query.type';
@@ -97,6 +102,7 @@ export class JobsController {
       source: query.source,
       profileId: query.profile_id,
       minScore: query.min_score,
+      status: query.status,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
     };
@@ -112,6 +118,28 @@ export class JobsController {
   async removeAll() {
     const { deleted } = await this.jobsService.removeAll();
     return { ok: true, deleted };
+  }
+
+  @Patch(':id/status')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Set job interest/application status for the current user',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: UpdateJobStatusDto })
+  @ApiResponse({ status: 200, type: JobStatusResponseDto })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  updateStatus(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: UpdateJobStatusDto,
+  ) {
+    return this.jobsService.updateUserStatus(
+      req.user.id,
+      id,
+      body.status === undefined ? null : body.status,
+    );
   }
 
   @Post(':id/analyses/regenerate')

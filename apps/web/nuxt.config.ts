@@ -21,6 +21,8 @@ export default defineNuxtConfig({
 
   runtimeConfig: {
     apiBaseUrl: 'http://localhost:3000',
+    // Server-only; must match Nest SEED_SECRET. Never expose to the client.
+    seedSecret: '',
     // h3 defaults cookie.secure=true; over http://localhost the browser drops the session → 401s
     session: {
       cookie: {

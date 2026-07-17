@@ -19,6 +19,8 @@ import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import { Job } from './entities/job.entity';
+import { JobUserStatus } from './entities/job-user-status.entity';
+import { JobInterestStatus } from './enums/job-interest-status.enum';
 import { JobsListQuery } from './types/jobs-list-query.type';
 
 function uniqueStrings(values: string[]): string[] {
@@ -34,6 +36,8 @@ export class JobsService {
     private readonly jobsRepository: Repository<Job>,
     @InjectRepository(SearchProfile)
     private readonly profilesRepository: Repository<SearchProfile>,
+    @InjectRepository(JobUserStatus)
+    private readonly jobUserStatusRepository: Repository<JobUserStatus>,
     private readonly jobAnalysesService: JobAnalysesService,
   ) {}
 
@@ -128,7 +132,7 @@ export class JobsService {
   }
 
   async findAll(userId: string, query: JobsListQuery): Promise<PaginatedJobs> {
-    const { page, limit, profileId, minScore, source } = query;
+    const { page, limit, profileId, minScore, source, status } = query;
 
     if (profileId) {
       await this.assertProfileBelongsToUser(userId, profileId);
@@ -138,6 +142,7 @@ export class JobsService {
       source,
       profileId,
       minScore,
+      status,
     });
     const total = await listQuery.getCount();
     const jobs = await listQuery
@@ -156,6 +161,8 @@ export class JobsService {
       profileId,
     );
 
+    await this.attachUserStatuses(data, userId);
+
     return { data, total, page, limit };
   }
 
@@ -170,8 +177,68 @@ export class JobsService {
     }
 
     job.analyses = this.filterAnalysesForUser(job.analyses ?? [], userId);
+    await this.attachUserStatuses([job], userId);
 
     return job;
+  }
+
+  async updateUserStatus(
+    userId: string,
+    jobId: string,
+    status: JobInterestStatus | null,
+  ): Promise<{ job_id: string; status: JobInterestStatus | null }> {
+    const job = await this.jobsRepository.findOne({ where: { id: jobId } });
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    const existing = await this.jobUserStatusRepository.findOne({
+      where: { user_id: userId, job_id: jobId },
+    });
+
+    if (status === null) {
+      if (existing) {
+        await this.jobUserStatusRepository.remove(existing);
+      }
+      return { job_id: jobId, status: null };
+    }
+
+    if (existing) {
+      existing.status = status;
+      await this.jobUserStatusRepository.save(existing);
+    } else {
+      await this.jobUserStatusRepository.save({
+        user_id: userId,
+        job_id: jobId,
+        status,
+      });
+    }
+
+    return { job_id: jobId, status };
+  }
+
+  private async attachUserStatuses(
+    jobs: Job[],
+    userId: string,
+  ): Promise<void> {
+    if (jobs.length === 0) {
+      return;
+    }
+
+    const statuses = await this.jobUserStatusRepository.find({
+      where: {
+        user_id: userId,
+        job_id: In(jobs.map((job) => job.id)),
+      },
+    });
+
+    const statusMap = new Map(
+      statuses.map((row) => [row.job_id, row.status] as const),
+    );
+
+    for (const job of jobs) {
+      job.user_status = statusMap.get(job.id) ?? null;
+    }
   }
 
   private buildJobsListQuery(
@@ -180,12 +247,25 @@ export class JobsService {
       source?: JobSource;
       profileId?: string;
       minScore?: number;
+      status?: JobInterestStatus;
     },
   ) {
     const qb = this.jobsRepository.createQueryBuilder('job');
 
     if (filters.source) {
       qb.andWhere('job.source = :source', { source: filters.source });
+    }
+
+    if (filters.status) {
+      qb.innerJoin(
+        JobUserStatus,
+        'jus',
+        'jus.job_id = job.id AND jus.user_id = :statusUserId AND jus.status = :interestStatus',
+        {
+          statusUserId: userId,
+          interestStatus: filters.status,
+        },
+      );
     }
 
     if (filters.minScore !== undefined) {

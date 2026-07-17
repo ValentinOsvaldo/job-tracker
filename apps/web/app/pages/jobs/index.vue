@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { JobSource, ListJobsQuery } from '~/types/api'
+import type { Job, JobInterestStatus, JobSource, ListJobsQuery } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -13,18 +13,21 @@ const api = useApiClient()
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const ScoreBadge = resolveComponent('ScoreBadge')
+const JobStatusControls = resolveComponent('JobStatusControls')
 
 const scraping = ref(false)
 
 const filters = reactive<{
   source: JobSource | 'all'
   profile_id: string | 'all'
+  status: JobInterestStatus | 'all'
   min_score: number | undefined
   page: number
   limit: number
 }>({
   source: 'all',
   profile_id: 'all',
+  status: 'all',
   min_score: undefined,
   page: 1,
   limit: 20
@@ -33,6 +36,7 @@ const filters = reactive<{
 const queryFilters = computed<ListJobsQuery>(() => ({
   source: filters.source === 'all' ? undefined : filters.source,
   profile_id: filters.profile_id === 'all' ? undefined : filters.profile_id,
+  status: filters.status === 'all' ? undefined : filters.status,
   min_score: typeof filters.min_score === 'number' && !Number.isNaN(filters.min_score)
     ? filters.min_score
     : undefined,
@@ -64,6 +68,14 @@ const profileItems = computed(() => [
   }))
 ])
 
+const statusItems = [
+  { label: 'All statuses', value: 'all' },
+  { label: 'Liked', value: 'liked' },
+  { label: 'Disliked', value: 'disliked' },
+  { label: 'Applied', value: 'applied' },
+  { label: 'Rejected', value: 'rejected' }
+]
+
 const totalPages = computed(() => {
   const total = jobsResponse.value?.total ?? 0
   const limit = jobsResponse.value?.limit ?? filters.limit
@@ -71,11 +83,15 @@ const totalPages = computed(() => {
 })
 
 watch(
-  () => [filters.source, filters.profile_id, filters.min_score, filters.limit],
+  () => [filters.source, filters.profile_id, filters.status, filters.min_score, filters.limit],
   () => {
     filters.page = 1
   }
 )
+
+function onStatusUpdated(job: Job, status: JobInterestStatus | null) {
+  job.user_status = status
+}
 
 const columns = [
   {
@@ -121,6 +137,16 @@ const columns = [
     accessorKey: 'location',
     header: 'Location',
     cell: ({ row }: { row: { original: { location: string | null } } }) => row.original.location || '—'
+  },
+  {
+    id: 'status',
+    header: 'Status',
+    cell: ({ row }: { row: { original: Job } }) =>
+      h(JobStatusControls, {
+        jobId: row.original.id,
+        status: row.original.user_status ?? null,
+        onUpdated: (status: JobInterestStatus | null) => onStatusUpdated(row.original, status)
+      })
   },
   {
     id: 'actions',
@@ -181,7 +207,7 @@ async function onScrape() {
       </UButton>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
       <UFormField label="Source">
         <USelect
           v-model="filters.source"
@@ -194,6 +220,14 @@ async function onScrape() {
         <USelect
           v-model="filters.profile_id"
           :items="profileItems"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Status">
+        <USelect
+          v-model="filters.status"
+          :items="statusItems"
           class="w-full"
         />
       </UFormField>

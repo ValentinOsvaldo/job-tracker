@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
+import { JobInterestStatus } from '../enums/job-interest-status.enum';
 
 @Entity('jobs')
 export class Job {
@@ -66,4 +67,12 @@ export class Job {
   @ApiProperty({ type: () => [JobAnalysis] })
   @OneToMany(() => JobAnalysis, (analysis) => analysis.job)
   analyses: JobAnalysis[];
+
+  /** Populated per-request for the authenticated user (not a DB column). */
+  @ApiPropertyOptional({
+    enum: JobInterestStatus,
+    nullable: true,
+    description: 'Current user interest/application status for this job',
+  })
+  user_status?: JobInterestStatus | null;
 }

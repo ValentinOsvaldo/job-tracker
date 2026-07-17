@@ -10,6 +10,7 @@ import {
   Min,
 } from 'class-validator';
 import { JobSource } from '../enums/job-source.enum';
+import { JobInterestStatus } from '../enums/job-interest-status.enum';
 
 export class ListJobsQueryDto {
   @ApiPropertyOptional({ enum: JobSource, example: JobSource.LINKEDIN })
@@ -29,6 +30,11 @@ export class ListJobsQueryDto {
   @Min(0)
   @Max(10)
   min_score?: number;
+
+  @ApiPropertyOptional({ enum: JobInterestStatus })
+  @IsOptional()
+  @IsEnum(JobInterestStatus)
+  status?: JobInterestStatus;
 
   @ApiPropertyOptional({ minimum: 1, default: 1, example: 1 })
   @IsOptional()

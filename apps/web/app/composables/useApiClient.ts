@@ -2,12 +2,15 @@ import type {
   CreateProfileInput,
   CvUploadResult,
   Job,
+  JobInterestStatus,
+  JobStatusResponse,
   JobsListResponse,
   ListJobsQuery,
   MarketTrendsResponse,
   PublicUser,
   ScrapeTriggerResult,
   SearchProfile,
+  SeedResult,
   UpdateProfileInput
 } from '~/types/api'
 
@@ -87,6 +90,20 @@ export function useApiClient() {
     })
   }
 
+  function updateJobStatus(jobId: string, status: JobInterestStatus | null) {
+    return requestFetch<JobStatusResponse>(`/api/jobs/${jobId}/status`, {
+      method: 'PATCH',
+      body: { status }
+    })
+  }
+
+  function runSeed() {
+    return requestFetch<SeedResult>('/api/seed', {
+      method: 'POST',
+      body: {}
+    })
+  }
+
   return {
     profilesQuery,
     jobsQuery,
@@ -97,6 +114,8 @@ export function useApiClient() {
     updateProfile,
     deleteProfile,
     uploadCv,
-    triggerScrape
+    triggerScrape,
+    updateJobStatus,
+    runSeed
   }
 }

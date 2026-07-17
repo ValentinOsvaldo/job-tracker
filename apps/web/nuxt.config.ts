@@ -1,34 +1,47 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   modules: [
-    "@nuxt/eslint",
-    "@nuxt/ui",
-    "@nuxt/image",
-    "@nuxt/test-utils",
-    "@nuxtjs/mcp-toolkit",
-    "nuxt-auth-utils",
-    "nuxt-authorization",
-    "nuxt-charts",
+    '@nuxt/eslint',
+    '@nuxt/ui',
+    '@nuxt/image',
+    '@nuxt/test-utils',
+    '@nuxtjs/mcp-toolkit',
+    'nuxt-auth-utils',
+    'nuxt-authorization',
+    'nuxt-charts',
+    '@pinia/nuxt',
+    '@pinia/colada-nuxt'
   ],
 
   devtools: {
-    enabled: true,
+    enabled: true
   },
 
-  css: ["~/assets/css/main.css"],
+  css: ['~/assets/css/main.css'],
 
-  routeRules: {
-    "/": { prerender: true },
+  runtimeConfig: {
+    apiBaseUrl: 'http://localhost:3000',
+    // h3 defaults cookie.secure=true; over http://localhost the browser drops the session → 401s
+    session: {
+      cookie: {
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production'
+      }
+    }
   },
 
-  compatibilityDate: "2026-06-30",
+  devServer: {
+    port: 3001
+  },
+
+  compatibilityDate: '2026-06-30',
 
   eslint: {
     config: {
       stylistic: {
-        commaDangle: "never",
-        braceStyle: "1tbs",
-      },
-    },
-  },
-});
+        commaDangle: 'never',
+        braceStyle: '1tbs'
+      }
+    }
+  }
+})

@@ -1,8 +1,11 @@
 import {
   BadRequestException,
+  BadGatewayException,
+  GatewayTimeoutException,
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
@@ -14,8 +17,13 @@ import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { JobSource } from './enums/job-source.enum';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
+import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import { Job } from './entities/job.entity';
 import { JobsListQuery } from './types/jobs-list-query.type';
+
+function uniqueStrings(values: string[]): string[] {
+  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+}
 
 @Injectable()
 export class JobsService {
@@ -275,6 +283,97 @@ export class JobsService {
     }
 
     return record;
+  }
+
+  async triggerScrape(userId: string): Promise<ScrapeTriggerResultDto> {
+    const scraperBaseUrl = (
+      process.env.SCRAPER_URL || 'http://localhost:8000'
+    ).replace(/\/$/, '');
+
+    const activeProfiles = await this.profilesRepository.find({
+      where: { user_id: userId, is_active: true },
+    });
+
+    const body = this.buildScrapeRequestBody(activeProfiles);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 120_000);
+
+    try {
+      this.logger.log(
+        `Triggering scrape at ${scraperBaseUrl}/scrape for user=${userId}`,
+      );
+
+      const response = await fetch(`${scraperBaseUrl}/scrape`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body ?? {}),
+        signal: controller.signal,
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | ScrapeTriggerResultDto
+        | { detail?: unknown; message?: string }
+        | null;
+
+      if (!response.ok) {
+        const detail =
+          payload && typeof payload === 'object' && 'detail' in payload
+            ? payload.detail
+            : payload;
+        throw new BadGatewayException(
+          detail ?? `Scraper returned HTTP ${response.status}`,
+        );
+      }
+
+      return payload as ScrapeTriggerResultDto;
+    } catch (error) {
+      if (error instanceof BadGatewayException) {
+        throw error;
+      }
+
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new GatewayTimeoutException(
+          'Scraper timed out after 120 seconds',
+        );
+      }
+
+      this.logger.error(
+        `Failed to reach scraper at ${scraperBaseUrl}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw new ServiceUnavailableException(
+        `Could not reach scraper at ${scraperBaseUrl}. Is it running?`,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private buildScrapeRequestBody(
+    activeProfiles: SearchProfile[],
+  ): Record<string, unknown> | null {
+    if (activeProfiles.length === 0) {
+      return null;
+    }
+
+    const searchTerms = uniqueStrings(
+      activeProfiles.flatMap((profile) =>
+        profile.keywords?.length ? profile.keywords : [profile.role],
+      ),
+    );
+    const locations = uniqueStrings(
+      activeProfiles.flatMap((profile) => profile.locations ?? []),
+    );
+
+    if (searchTerms.length === 0 && locations.length === 0) {
+      return null;
+    }
+
+    return {
+      sites: ['linkedin', 'indeed'],
+      ...(searchTerms.length > 0 ? { search_terms: searchTerms } : {}),
+      ...(locations.length > 0 ? { locations } : {}),
+    };
   }
 
   private mapIngestRecord(record: IngestJobDto): Partial<Job> {

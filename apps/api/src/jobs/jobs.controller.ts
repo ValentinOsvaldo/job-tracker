@@ -34,6 +34,7 @@ import {
   IngestResultDto,
   PaginatedJobsResponseDto,
 } from './dto/jobs-response.dto';
+import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import { Job } from './entities/job.entity';
 import { JobsService } from './jobs.service';
 import { JobsListQuery } from './types/jobs-list-query.type';
@@ -62,6 +63,21 @@ export class JobsController {
     }
 
     return this.jobsService.ingest(records);
+  }
+
+  @Post('scrape')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Trigger a manual scrape',
+    description:
+      'Calls the Python scraper using keywords/locations from the authenticated user’s active profiles (or scraper defaults when none exist).',
+  })
+  @ApiResponse({ status: 200, type: ScrapeTriggerResultDto })
+  @ApiResponse({ status: 502, description: 'Scraper failed' })
+  @ApiResponse({ status: 503, description: 'Scraper unreachable' })
+  triggerScrape(@Req() req: { user: PublicUser }) {
+    return this.jobsService.triggerScrape(req.user.id);
   }
 
   @Get('trends')

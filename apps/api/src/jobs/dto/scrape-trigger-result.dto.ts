@@ -25,6 +25,9 @@ export class ScrapeTriggerResultDto {
   @ApiProperty({ example: 12 })
   sent: number;
 
+  @ApiPropertyOptional({ example: 5, description: 'Jobs dropped by relevance filter' })
+  filtered_out?: number;
+
   @ApiProperty({ type: IngestResultDto })
   ingest: IngestResultDto;
 

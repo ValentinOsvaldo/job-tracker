@@ -9,13 +9,17 @@ import pandas as pd
 from pydantic import BaseModel, Field
 
 from config import (
+    ENFORCE_ANNUAL_SALARY,
     HOURS_OLD,
+    LINKEDIN_FETCH_DESCRIPTION,
     LOCATIONS,
     NESTJS_URL,
+    RELEVANCE_FILTER,
     RESULTS,
     SCRAPE_INTERVAL_HOURS,
     SEARCH_TERMS,
 )
+from filters import is_relevant_job
 
 SiteName = Literal["linkedin", "indeed"]
 DEFAULT_SITES: list[SiteName] = ["linkedin", "indeed"]
@@ -127,7 +131,9 @@ def fetch_jobs(params: ScrapeParams | None = None) -> pd.DataFrame:
                 location=location,
                 results_wanted=scrape.results_wanted,
                 hours_old=scrape.hours_old,
-                country_indeed="Mexico"
+                country_indeed="Mexico",
+                linkedin_fetch_description=LINKEDIN_FETCH_DESCRIPTION,
+                enforce_annual_salary=ENFORCE_ANNUAL_SALARY,
             )
             all_jobs.append(jobs)
 
@@ -166,26 +172,49 @@ def is_valid_record(record: dict) -> bool:
     )
 
 
-def records_for_json(df: pd.DataFrame) -> list[dict]:
+def records_for_json(
+    df: pd.DataFrame,
+    search_terms: list[str] | None = None,
+) -> tuple[list[dict], dict[str, int]]:
+    stats = {"raw": 0, "blocked": 0, "kept": 0}
+
     if df.empty:
-        return []
+        return [], stats
 
     records = df.to_dict(orient="records")
-    serialized = [
-        {
+    serialized: list[dict] = []
+
+    for record in records:
+        payload = {
             key: to_json_value(record[key])
             for key in INGEST_FIELDS
             if key in record
         }
-        for record in records
-    ]
-    return [record for record in serialized if is_valid_record(record)]
+
+        if not is_valid_record(payload):
+            continue
+
+        stats["raw"] += 1
+
+        if RELEVANCE_FILTER and not is_relevant_job(
+            payload.get("title"),
+            payload.get("description"),
+            search_terms,
+        ):
+            stats["blocked"] += 1
+            continue
+
+        stats["kept"] += 1
+        serialized.append(payload)
+
+    return serialized, stats
 
 
 def do_scrape(params: ScrapeParams | None = None) -> dict:
     scrape = params or default_scrape_params()
     combined = fetch_jobs(scrape)
-    payload = records_for_json(combined)
+    payload, filter_stats = records_for_json(combined, scrape.search_terms)
+    filtered_out = filter_stats["blocked"]
     base_url = NESTJS_URL.rstrip("/")
     response = httpx.post(
         f"{base_url}/api/jobs/ingest",
@@ -194,9 +223,19 @@ def do_scrape(params: ScrapeParams | None = None) -> dict:
     )
     response.raise_for_status()
     ingest = response.json()
-    print(f"Sent {len(payload)} jobs to NestJS: {ingest}")
+    print(
+        "Sent {sent} jobs to NestJS (raw={raw}, blocked={blocked}, kept={kept}): {ingest}".format(
+            sent=len(payload),
+            raw=filter_stats["raw"],
+            blocked=filter_stats["blocked"],
+            kept=filter_stats["kept"],
+            ingest=ingest,
+        )
+    )
     return {
         "sent": len(payload),
+        "filtered_out": filtered_out,
+        "filter": filter_stats,
         "ingest": ingest,
         "params": scrape.model_dump(),
     }
@@ -267,7 +306,10 @@ def scrape_preview(
         results_wanted=results_wanted,
         hours_old=hours_old,
     )
+    jobs, filter_stats = records_for_json(fetch_jobs(params), params.search_terms)
     return {
         "params": params.model_dump(),
-        "jobs": records_for_json(fetch_jobs(params)),
+        "filter": filter_stats,
+        "filtered_out": filter_stats["blocked"],
+        "jobs": jobs,
     }

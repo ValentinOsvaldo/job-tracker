@@ -90,6 +90,7 @@ export interface CvUploadResult {
 export interface ScrapeTriggerResult {
   ok: boolean
   sent: number
+  filtered_out?: number
   ingest: {
     received: number
     inserted: number

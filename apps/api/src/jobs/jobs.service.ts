@@ -356,11 +356,24 @@ export class JobsService {
       return null;
     }
 
-    const searchTerms = uniqueStrings(
-      activeProfiles.flatMap((profile) =>
-        profile.keywords?.length ? profile.keywords : [profile.role],
+    const ROLE_SEARCH_TERMS: Record<string, string> = {
+      frontend: 'frontend developer',
+      backend: 'backend developer',
+      fullstack: 'fullstack developer',
+      mobile: 'mobile developer',
+    };
+
+    const roleTerms = uniqueStrings(
+      activeProfiles.map(
+        (profile) => ROLE_SEARCH_TERMS[profile.role] ?? `${profile.role} developer`,
       ),
     );
+
+    const technicalKeywords = uniqueStrings(
+      activeProfiles.flatMap((profile) => profile.keywords ?? []),
+    ).filter((keyword) => keyword.length >= 3);
+
+    const searchTerms = uniqueStrings([...roleTerms, ...technicalKeywords]);
     const locations = uniqueStrings(
       activeProfiles.flatMap((profile) => profile.locations ?? []),
     );

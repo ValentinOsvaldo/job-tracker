@@ -7,6 +7,7 @@ export interface DatabaseEnvConfig {
   username: string;
   password: string;
   database: string;
+  ssl?: boolean; // 👈 nuevo
 }
 
 export function getDatabaseEnvConfigFromProcessEnv(
@@ -14,20 +15,18 @@ export function getDatabaseEnvConfigFromProcessEnv(
 ): DatabaseEnvConfig {
   const required = (key: string): string => {
     const value = env[key];
-
     if (!value) {
       throw new Error(`Missing environment variable: ${key}`);
     }
-
     return value;
   };
-
   return {
     host: env.DB_HOST ?? 'localhost',
     port: Number(env.DB_PORT ?? 5432),
     username: required('DB_USERNAME'),
     password: required('DB_PASSWORD'),
     database: required('DB_NAME'),
+    ssl: env.DB_SSL === 'true', // 👈 nuevo
   };
 }
 
@@ -40,6 +39,7 @@ export function getDatabaseEnvConfigFromConfigService(
     username: configService.getOrThrow<string>('DB_USERNAME'),
     password: configService.getOrThrow<string>('DB_PASSWORD'),
     database: configService.getOrThrow<string>('DB_NAME'),
+    ssl: configService.get<string>('DB_SSL') === 'true', // 👈 nuevo
   };
 }
 
@@ -53,5 +53,8 @@ export function createPostgresOptions(
     username: config.username,
     password: config.password,
     database: config.database,
+    ssl: config.ssl
+      ? { rejectUnauthorized: false } // 👈 Neon usa certs propios, así evitas el error de cert
+      : false,
   };
 }

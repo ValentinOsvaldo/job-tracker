@@ -29,7 +29,7 @@ import { SeedModule } from './seed/seed.module';
           getDatabaseEnvConfigFromConfigService(configService),
         ),
         autoLoadEntities: true,
-        synchronize: true,
+        synchronize: configService.get('NODE_ENV') !== 'production',
       }),
       inject: [ConfigService],
     }),

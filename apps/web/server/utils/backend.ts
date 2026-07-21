@@ -31,7 +31,10 @@ async function refreshSession(event: AuthEvent): Promise<boolean> {
       body: { refreshToken }
     })
 
-    await setUserSession(event, {
+    // Replace (not merge) so stale fields from an old, oversized session
+    // — e.g. a cv_text that leaked in before it was excluded — don't
+    // survive forever via defu's fallback-to-existing-data merge.
+    await replaceUserSession(event, {
       user: session.user,
       secure: {
         accessToken: tokens.accessToken,
@@ -61,8 +64,10 @@ export async function setAuthSession(event: AuthEvent, login: LoginResponse) {
   // Only minimal identity fields go in the session cookie. cv_text can be
   // tens of KB and pushes the sealed cookie past the browser's 4096-byte
   // Set-Cookie limit, which makes the browser silently drop it — the user
-  // looks logged in but the cookie never actually updates.
-  await setUserSession(event, {
+  // looks logged in but the cookie never actually updates. Use replace
+  // (not set) so a previously bloated session doesn't merge its stale
+  // fields back in via defu.
+  await replaceUserSession(event, {
     user: {
       id: user.id,
       name: user.name,

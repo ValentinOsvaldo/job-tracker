@@ -18,7 +18,9 @@ export default defineEventHandler(async (event) => {
   const session = await getUserSession(event as never)
   // Keep the session cookie minimal — cv_text can be tens of KB and
   // would push the sealed cookie past the browser's 4096-byte limit.
-  await setUserSession(event as never, {
+  // Use replace (not set) so a previously bloated session doesn't merge
+  // its stale fields back in via defu.
+  await replaceUserSession(event as never, {
     user: {
       id: normalized.id,
       name: normalized.name,

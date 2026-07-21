@@ -93,6 +93,27 @@ function onStatusUpdated(job: Job, status: JobInterestStatus | null) {
   job.user_status = status
 }
 
+const deletingId = ref<string | null>(null)
+
+async function onDelete(job: { id: string, title: string }) {
+  if (!confirm(`Delete “${job.title}”? This can't be undone.`)) return
+  deletingId.value = job.id
+  try {
+    await api.deleteJob(job.id)
+    toast.add({ title: 'Job deleted', color: 'success' })
+    await queryCache.invalidateQueries({ key: ['jobs'] })
+    await refetch()
+  } catch (err: unknown) {
+    toast.add({
+      title: 'Could not delete job',
+      description: (err as { statusMessage?: string })?.statusMessage || 'Try again',
+      color: 'error'
+    })
+  } finally {
+    deletingId.value = null
+  }
+}
+
 const columns = [
   {
     accessorKey: 'title',
@@ -151,14 +172,28 @@ const columns = [
   {
     id: 'actions',
     header: '',
-    cell: ({ row }: { row: { original: { id: string } } }) =>
-      h(UButton, {
-        to: `/jobs/${row.original.id}`,
-        size: 'xs',
-        color: 'neutral',
-        variant: 'ghost',
-        icon: 'i-lucide-arrow-right'
-      }, () => 'View')
+    cell: ({ row }: { row: { original: { id: string, title: string } } }) =>
+      h('div', { class: 'flex items-center justify-end gap-1' }, [
+        h(UButton, {
+          to: `/jobs/${row.original.id}`,
+          size: 'xs',
+          color: 'neutral',
+          variant: 'subtle',
+          icon: 'i-lucide-arrow-right'
+        }, () => 'View'),
+        h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' }),
+        h(UButton, {
+          'size': 'xs',
+          'color': 'error',
+          'variant': 'ghost',
+          'icon': 'i-lucide-trash-2',
+          'loading': deletingId.value === row.original.id,
+          'disabled': deletingId.value !== null,
+          'aria-label': 'Delete job',
+          'title': 'Delete job',
+          'onClick': () => onDelete(row.original)
+        })
+      ])
   }
 ]
 

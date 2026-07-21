@@ -97,6 +97,10 @@ export function useApiClient() {
     })
   }
 
+  function deleteJob(jobId: string) {
+    return requestFetch<{ ok: true }>(`/api/jobs/${jobId}`, { method: 'DELETE' })
+  }
+
   function runSeed() {
     return requestFetch<SeedResult>('/api/seed', {
       method: 'POST',
@@ -116,6 +120,7 @@ export function useApiClient() {
     uploadCv,
     triggerScrape,
     updateJobStatus,
+    deleteJob,
     runSeed
   }
 }

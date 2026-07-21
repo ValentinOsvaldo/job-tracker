@@ -120,6 +120,18 @@ export class JobsController {
     return { ok: true, deleted };
   }
 
+  @Delete(':id')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Delete a single job and its analyses' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  async remove(@Param('id', ParseUUIDPipe) id: string) {
+    await this.jobsService.remove(id);
+    return { ok: true };
+  }
+
   @Patch(':id/status')
   @HttpCode(200)
   @ApiBearerAuth('access-token')

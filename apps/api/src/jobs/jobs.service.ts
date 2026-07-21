@@ -131,6 +131,16 @@ export class JobsService {
     return { deleted };
   }
 
+  async remove(id: string): Promise<void> {
+    const result = await this.jobsRepository.delete(id);
+
+    if (!result.affected) {
+      throw new NotFoundException(`Job with id ${id} not found`);
+    }
+
+    this.logger.log(`Deleted job: id=${id}`);
+  }
+
   async findAll(userId: string, query: JobsListQuery): Promise<PaginatedJobs> {
     const { page, limit, profileId, minScore, source, status } = query;
 

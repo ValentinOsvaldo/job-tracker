@@ -9,6 +9,7 @@ definePageMeta({
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
+const auth = useAuthStore()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
@@ -236,18 +237,22 @@ const columns = [
           variant: 'subtle',
           icon: 'i-lucide-arrow-right'
         }, () => 'View'),
-        h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' }),
-        h(UButton, {
-          'size': 'xs',
-          'color': 'error',
-          'variant': 'ghost',
-          'icon': 'i-lucide-trash-2',
-          'loading': deletingId.value === row.original.id,
-          'disabled': deletingId.value !== null,
-          'aria-label': 'Delete job',
-          'title': 'Delete job',
-          'onClick': () => onDelete(row.original)
-        })
+        auth.isAdmin
+          ? h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' })
+          : null,
+        auth.isAdmin
+          ? h(UButton, {
+              'size': 'xs',
+              'color': 'error',
+              'variant': 'ghost',
+              'icon': 'i-lucide-trash-2',
+              'loading': deletingId.value === row.original.id,
+              'disabled': deletingId.value !== null,
+              'aria-label': 'Delete job',
+              'title': 'Delete job',
+              'onClick': () => onDelete(row.original)
+            })
+          : null
       ])
   }
 ]

@@ -8,6 +8,7 @@ export default defineEventHandler(async (event) => {
     id: user.id,
     name: user.name,
     email: user.email,
+    role: user.role,
     cv_text: user.cv_text,
     cv_filename: user.cv_filename,
     cv_uploaded_at: user.cv_uploaded_at ? String(user.cv_uploaded_at) : null,
@@ -25,6 +26,7 @@ export default defineEventHandler(async (event) => {
       id: normalized.id,
       name: normalized.name,
       email: normalized.email,
+      role: normalized.role,
       created_at: normalized.created_at
     },
     secure: session.secure

@@ -28,6 +28,13 @@ const links = computed(() => [
     active: route.path.startsWith('/cv')
   },
   {
+    label: 'ATS check',
+    to: '/ats-check',
+    icon: 'i-lucide-scan-search',
+    badge: 'Preview',
+    active: route.path.startsWith('/ats-check')
+  },
+  {
     label: 'Settings',
     to: '/settings',
     icon: 'i-lucide-settings',

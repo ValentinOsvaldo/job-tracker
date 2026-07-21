@@ -3,15 +3,24 @@ export type JobSource = 'linkedin' | 'indeed'
 export type InterestStatus = 'liked' | 'disliked'
 export type JobSortBy = 'salary' | 'score' | 'location'
 export type SortDirection = 'asc' | 'desc'
+export type UserRole = 'admin' | 'user'
 
 export interface PublicUser {
   id: string
   name: string
   email: string
+  role: UserRole
   cv_text: string | null
   cv_filename: string | null
   cv_uploaded_at: string | null
   created_at: string
+}
+
+export interface CreateUserInput {
+  name: string
+  email: string
+  password: string
+  role?: UserRole
 }
 
 export interface SearchProfile {
@@ -22,6 +31,10 @@ export interface SearchProfile {
   keywords: string[]
   locations: string[]
   is_active: boolean
+  salary_min_mxn: number | null
+  salary_max_mxn: number | null
+  salary_min_usd: number | null
+  salary_max_usd: number | null
   created_at: string
 }
 
@@ -31,6 +44,10 @@ export interface CreateProfileInput {
   keywords: string[]
   locations: string[]
   is_active?: boolean
+  salary_min_mxn?: number
+  salary_max_mxn?: number
+  salary_min_usd?: number
+  salary_max_usd?: number
 }
 
 export type UpdateProfileInput = Partial<CreateProfileInput>
@@ -137,8 +154,11 @@ export interface ScrapeTriggerResult {
 }
 
 export interface KeywordStat {
-  keyword: string
+  term: string
   count: number
+  percentage?: number
+  trend?: 'rising' | 'stable' | 'declining'
+  source?: 'jobs' | 'analyses'
 }
 
 export interface MarketTrendsResponse {
@@ -155,6 +175,17 @@ export interface MarketTrendsResponse {
     salary_signals: string | null
     recommendations: string[]
   } | null
+  generated_at: string
+  ai_cached: boolean
+}
+
+export interface CvAnalysisResponse {
+  score: number
+  summary: string
+  strengths: string[]
+  gaps: string[]
+  recommendations: string[]
+  analyzed_jobs_count: number
   generated_at: string
   ai_cached: boolean
 }

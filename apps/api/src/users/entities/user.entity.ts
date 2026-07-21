@@ -12,6 +12,7 @@ import {
 } from 'typeorm';
 import { RefreshToken } from './refresh-token.entity';
 import { SearchProfile } from '../../profiles/entities/search-profile.entity';
+import { UserRole } from '../enums/user-role.enum';
 
 @Entity('users')
 export class User {
@@ -30,6 +31,10 @@ export class User {
   @ApiHideProperty()
   @Column({ type: 'varchar', length: 255 })
   password: string;
+
+  @ApiProperty({ enum: UserRole, example: UserRole.USER })
+  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
+  role: UserRole;
 
   @ApiPropertyOptional({ nullable: true })
   @Column({ type: 'text', nullable: true })

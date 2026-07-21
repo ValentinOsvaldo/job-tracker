@@ -2,7 +2,11 @@ import type { SeedResult } from '../../app/types/api'
 import { backendFetch } from '../utils/backend'
 
 export default defineEventHandler(async (event) => {
-  await requireUserSession(event)
+  const session = await requireUserSession(event)
+
+  if (session.user?.role !== 'admin') {
+    throw createError({ statusCode: 403, statusMessage: 'Admin role required' })
+  }
 
   const config = useRuntimeConfig(event)
   const seedSecret = config.seedSecret as string

@@ -4,8 +4,11 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
 import { User } from './entities/user.entity';
+import { UserRole } from './enums/user-role.enum';
 import { PdfParserService } from './pdf-parser.service';
 import { CvUploadResult } from './types/cv-upload-result.type';
 import { PublicUser } from './types/public-user.type';
@@ -18,6 +21,27 @@ export class UsersService {
     private readonly usersRepository: Repository<User>,
     private readonly pdfParserService: PdfParserService,
   ) {}
+
+  async create(dto: CreateUserDto): Promise<PublicUser> {
+    const existing = await this.usersRepository.findOne({
+      where: { email: dto.email },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        `A user with email ${dto.email} already exists`,
+      );
+    }
+
+    const user = await this.usersRepository.save({
+      name: dto.name,
+      email: dto.email,
+      password: await bcrypt.hash(dto.password, 12),
+      role: dto.role ?? UserRole.USER,
+    });
+
+    return this.toPublicUser(user);
+  }
 
   findAll(): Promise<PublicUser[]> {
     return this.usersRepository
@@ -82,6 +106,7 @@ export class UsersService {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       cv_text: user.cv_text,
       cv_filename: user.cv_filename,
       cv_uploaded_at: user.cv_uploaded_at,

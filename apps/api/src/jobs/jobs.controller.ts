@@ -27,7 +27,9 @@ import { MarketTrendsResponseDto } from '../market-trends/dto/market-trends-resp
 import { TrendsQueryDto } from '../market-trends/dto/trends-query.dto';
 import { MarketTrendsService } from '../market-trends/market-trends.service';
 import { Public } from '../auth/decorators/public.decorator';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { PublicUser } from '../users/types/public-user.type';
+import { UserRole } from '../users/enums/user-role.enum';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import {
@@ -117,8 +119,10 @@ export class JobsController {
   @Delete()
   @HttpCode(200)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Delete all jobs and their analyses' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Delete all jobs and their analyses (admin only)' })
   @ApiResponse({ status: 200, type: DeleteAllJobsResultDto })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   async removeAll() {
     const { deleted } = await this.jobsService.removeAll();
     return { ok: true, deleted };
@@ -127,9 +131,13 @@ export class JobsController {
   @Delete(':id')
   @HttpCode(200)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Delete a single job and its analyses' })
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Delete a single job and its analyses (admin only)',
+  })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
   @ApiResponse({ status: 404, description: 'Job not found' })
   async remove(@Param('id', ParseUUIDPipe) id: string) {
     await this.jobsService.remove(id);

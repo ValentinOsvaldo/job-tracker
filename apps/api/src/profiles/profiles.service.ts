@@ -48,6 +48,10 @@ export class ProfilesService {
       keywords: dto.keywords,
       locations: dto.locations,
       is_active: dto.is_active ?? true,
+      salary_min_mxn: dto.salary_min_mxn ?? null,
+      salary_max_mxn: dto.salary_max_mxn ?? null,
+      salary_min_usd: dto.salary_min_usd ?? null,
+      salary_max_usd: dto.salary_max_usd ?? null,
     });
 
     if (profile.is_active) {

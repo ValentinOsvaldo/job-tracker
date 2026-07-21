@@ -23,7 +23,11 @@ const state = reactive({
   role: 'frontend' as ProfileRole,
   keywordsText: '',
   locationsText: '',
-  is_active: true
+  is_active: true,
+  salary_min_mxn: undefined as number | undefined,
+  salary_max_mxn: undefined as number | undefined,
+  salary_min_usd: undefined as number | undefined,
+  salary_max_usd: undefined as number | undefined
 })
 
 watch(
@@ -36,12 +40,20 @@ watch(
       state.keywordsText = profile.keywords.join(', ')
       state.locationsText = profile.locations.join(', ')
       state.is_active = profile.is_active
+      state.salary_min_mxn = profile.salary_min_mxn ?? undefined
+      state.salary_max_mxn = profile.salary_max_mxn ?? undefined
+      state.salary_min_usd = profile.salary_min_usd ?? undefined
+      state.salary_max_usd = profile.salary_max_usd ?? undefined
     } else {
       state.name = ''
       state.role = 'frontend'
       state.keywordsText = ''
       state.locationsText = ''
       state.is_active = true
+      state.salary_min_mxn = undefined
+      state.salary_max_mxn = undefined
+      state.salary_min_usd = undefined
+      state.salary_max_usd = undefined
     }
   },
   { immediate: true }
@@ -60,7 +72,11 @@ function onSubmit() {
     role: state.role,
     keywords: parseList(state.keywordsText),
     locations: parseList(state.locationsText),
-    is_active: state.is_active
+    is_active: state.is_active,
+    salary_min_mxn: state.salary_min_mxn,
+    salary_max_mxn: state.salary_max_mxn,
+    salary_min_usd: state.salary_min_usd,
+    salary_max_usd: state.salary_max_usd
   })
 }
 </script>
@@ -126,6 +142,69 @@ function onSubmit() {
             placeholder="Mexico, Remote"
           />
         </UFormField>
+
+        <div class="space-y-2">
+          <p class="text-sm font-medium">
+            Desired salary range
+          </p>
+          <p class="text-xs text-muted">
+            Optional — fill whichever currency(ies) apply. No conversion is done between them.
+          </p>
+
+          <div class="grid grid-cols-2 gap-3">
+            <UFormField
+              label="Min (MXN)"
+              name="salary_min_mxn"
+            >
+              <UInput
+                v-model.number="state.salary_min_mxn"
+                type="number"
+                min="0"
+                class="w-full"
+                placeholder="40000"
+              />
+            </UFormField>
+
+            <UFormField
+              label="Max (MXN)"
+              name="salary_max_mxn"
+            >
+              <UInput
+                v-model.number="state.salary_max_mxn"
+                type="number"
+                min="0"
+                class="w-full"
+                placeholder="80000"
+              />
+            </UFormField>
+
+            <UFormField
+              label="Min (USD)"
+              name="salary_min_usd"
+            >
+              <UInput
+                v-model.number="state.salary_min_usd"
+                type="number"
+                min="0"
+                class="w-full"
+                placeholder="2000"
+              />
+            </UFormField>
+
+            <UFormField
+              label="Max (USD)"
+              name="salary_max_usd"
+            >
+              <UInput
+                v-model.number="state.salary_max_usd"
+                type="number"
+                min="0"
+                class="w-full"
+                placeholder="4500"
+              />
+            </UFormField>
+          </div>
+        </div>
 
         <UFormField
           label="Active"

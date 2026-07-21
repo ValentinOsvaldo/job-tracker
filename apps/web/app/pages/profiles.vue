@@ -175,6 +175,19 @@ async function onDelete(profile: SearchProfile) {
               </UBadge>
             </div>
           </div>
+
+          <div v-if="formatProfileSalaryRanges(profile).length">
+            <p class="text-xs text-muted mb-1">
+              Target salary
+            </p>
+            <p
+              v-for="range in formatProfileSalaryRanges(profile)"
+              :key="range"
+              class="text-default"
+            >
+              {{ range }}
+            </p>
+          </div>
         </div>
 
         <template #footer>

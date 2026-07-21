@@ -204,12 +204,12 @@ async function onScrape() {
           <div class="flex flex-wrap gap-1.5">
             <UBadge
               v-for="item in trends.top_demanded_skills.slice(0, 8)"
-              :key="item.keyword"
+              :key="item.term"
               color="primary"
               variant="subtle"
               size="sm"
             >
-              {{ item.keyword }} ({{ item.count }})
+              {{ item.term }} ({{ item.count }})
             </UBadge>
             <span
               v-if="!trends.top_demanded_skills.length"

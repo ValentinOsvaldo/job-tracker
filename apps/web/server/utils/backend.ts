@@ -53,6 +53,7 @@ export async function setAuthSession(event: AuthEvent, login: LoginResponse) {
     id: login.user.id,
     name: login.user.name,
     email: login.user.email,
+    role: login.user.role,
     cv_text: login.user.cv_text,
     cv_filename: login.user.cv_filename,
     cv_uploaded_at: login.user.cv_uploaded_at
@@ -72,6 +73,7 @@ export async function setAuthSession(event: AuthEvent, login: LoginResponse) {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       created_at: user.created_at
     },
     secure: {

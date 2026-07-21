@@ -1,5 +1,7 @@
 import type {
   CreateProfileInput,
+  CreateUserInput,
+  CvAnalysisResponse,
   CvUploadResult,
   Job,
   JobStatusResponse,
@@ -62,6 +64,15 @@ export function useApiClient() {
     query: () => requestFetch<PublicUser>('/api/auth/me')
   }
 
+  function cvAnalysisQuery(refresh = false) {
+    return {
+      key: ['cv-analysis', refresh] as const,
+      query: () => requestFetch<CvAnalysisResponse>('/api/users/me/cv-analysis', {
+        query: cleanQuery({ refresh })
+      })
+    }
+  }
+
   function createProfile(body: CreateProfileInput) {
     return requestFetch<SearchProfile>('/api/profiles', { method: 'POST', body })
   }
@@ -108,12 +119,17 @@ export function useApiClient() {
     })
   }
 
+  function createUser(body: CreateUserInput) {
+    return requestFetch<PublicUser>('/api/users', { method: 'POST', body })
+  }
+
   return {
     profilesQuery,
     jobsQuery,
     jobQuery,
     trendsQuery,
     meQuery,
+    cvAnalysisQuery,
     createProfile,
     updateProfile,
     deleteProfile,
@@ -121,6 +137,7 @@ export function useApiClient() {
     triggerScrape,
     updateJobStatus,
     deleteJob,
-    runSeed
+    runSeed,
+    createUser
   }
 }

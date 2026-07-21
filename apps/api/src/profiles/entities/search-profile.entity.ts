@@ -1,4 +1,8 @@
-import { ApiHideProperty, ApiProperty } from '@nestjs/swagger';
+import {
+  ApiHideProperty,
+  ApiProperty,
+  ApiPropertyOptional,
+} from '@nestjs/swagger';
 import {
   Column,
   CreateDateColumn,
@@ -48,6 +52,22 @@ export class SearchProfile {
   @ApiProperty({ example: true })
   @Column({ type: 'boolean', default: true })
   is_active: boolean;
+
+  @ApiPropertyOptional({ nullable: true, example: 40000 })
+  @Column({ type: 'int', nullable: true })
+  salary_min_mxn: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 80000 })
+  @Column({ type: 'int', nullable: true })
+  salary_max_mxn: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 2000 })
+  @Column({ type: 'int', nullable: true })
+  salary_min_usd: number | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 4500 })
+  @Column({ type: 'int', nullable: true })
+  salary_max_usd: number | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })

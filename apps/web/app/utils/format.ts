@@ -32,3 +32,32 @@ export function formatDate(value: string | null | undefined) {
     day: 'numeric'
   })
 }
+
+function formatOneRange(min: number | null, max: number | null, currency: string) {
+  if (min == null && max == null) return null
+  const range = min != null && max != null
+    ? `$${min.toLocaleString()}–$${max.toLocaleString()}`
+    : min != null
+      ? `$${min.toLocaleString()}+`
+      : `up to $${max!.toLocaleString()}`
+  return `${range} ${currency}`
+}
+
+export function formatProfileSalaryRanges(profile: {
+  salary_min_mxn: number | null
+  salary_max_mxn: number | null
+  salary_min_usd: number | null
+  salary_max_usd: number | null
+}) {
+  return [
+    formatOneRange(profile.salary_min_mxn, profile.salary_max_mxn, 'MXN'),
+    formatOneRange(profile.salary_min_usd, profile.salary_max_usd, 'USD')
+  ].filter((range): range is string => range !== null)
+}
+
+export function cvScoreColor(score: number | null | undefined): 'success' | 'warning' | 'error' | 'neutral' {
+  if (score == null) return 'neutral'
+  if (score >= 70) return 'success'
+  if (score >= 45) return 'warning'
+  return 'error'
+}

@@ -18,6 +18,25 @@ const uploading = ref(false)
 
 const selectedFile = computed(() => file.value)
 
+const cvRefresh = ref(false)
+
+const {
+  data: cvAnalysis,
+  isPending: analysisPending,
+  error: analysisError,
+  refetch: refetchAnalysis
+} = useQuery({
+  key: () => ['cv-analysis', cvRefresh.value],
+  query: () => api.cvAnalysisQuery(cvRefresh.value).query(),
+  enabled: () => !!me.value?.cv_filename
+})
+
+async function onRefreshAnalysis() {
+  cvRefresh.value = true
+  await refetchAnalysis()
+  cvRefresh.value = false
+}
+
 async function onUpload() {
   const userId = me.value?.id || auth.user?.id
   if (!userId || !selectedFile.value) return
@@ -32,6 +51,7 @@ async function onUpload() {
     })
     file.value = null
     await queryCache.invalidateQueries({ key: ['me'] })
+    await queryCache.invalidateQueries({ key: ['cv-analysis'] })
     await auth.refreshUser()
     await refetch()
   } catch (err: unknown) {
@@ -113,6 +133,122 @@ async function onUpload() {
         >
           Upload CV
         </UButton>
+      </div>
+    </UCard>
+
+    <UCard v-if="me?.cv_filename">
+      <template #header>
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="font-semibold text-highlighted">
+            CV score & market fit
+          </h2>
+          <UButton
+            size="sm"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-refresh-cw"
+            :loading="analysisPending"
+            @click="onRefreshAnalysis"
+          >
+            Refresh
+          </UButton>
+        </div>
+      </template>
+
+      <div
+        v-if="analysisPending"
+        class="flex justify-center py-8"
+      >
+        <UIcon
+          name="i-lucide-loader-circle"
+          class="size-8 animate-spin text-muted"
+        />
+      </div>
+
+      <UAlert
+        v-else-if="analysisError"
+        color="error"
+        title="Could not generate CV analysis"
+        :description="(analysisError as { statusMessage?: string })?.statusMessage"
+      />
+
+      <div
+        v-else-if="cvAnalysis"
+        class="space-y-4 text-sm"
+      >
+        <div class="flex items-center gap-3">
+          <UBadge
+            :color="cvScoreColor(cvAnalysis.score)"
+            variant="subtle"
+            size="lg"
+          >
+            {{ cvAnalysis.score }}/100
+          </UBadge>
+          <p class="text-xs text-muted">
+            Based on {{ cvAnalysis.analyzed_jobs_count }} analyzed job{{ cvAnalysis.analyzed_jobs_count === 1 ? '' : 's' }}
+            <span v-if="cvAnalysis.ai_cached">· cached</span>
+          </p>
+        </div>
+
+        <p class="text-default">
+          {{ cvAnalysis.summary }}
+        </p>
+
+        <div>
+          <p class="font-medium mb-1">
+            Strengths
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <UBadge
+              v-for="item in cvAnalysis.strengths"
+              :key="item"
+              color="success"
+              variant="subtle"
+              size="sm"
+            >
+              {{ item }}
+            </UBadge>
+            <span
+              v-if="!cvAnalysis.strengths.length"
+              class="text-muted"
+            >None yet</span>
+          </div>
+        </div>
+
+        <div>
+          <p class="font-medium mb-1">
+            Gaps
+          </p>
+          <div class="flex flex-wrap gap-1.5">
+            <UBadge
+              v-for="item in cvAnalysis.gaps"
+              :key="item"
+              color="warning"
+              variant="subtle"
+              size="sm"
+            >
+              {{ item }}
+            </UBadge>
+            <span
+              v-if="!cvAnalysis.gaps.length"
+              class="text-muted"
+            >None yet</span>
+          </div>
+        </div>
+
+        <div>
+          <p class="font-medium mb-1">
+            Recommendations
+          </p>
+          <ul class="list-disc list-inside space-y-1 text-default">
+            <li
+              v-for="item in cvAnalysis.recommendations"
+              :key="item"
+            >
+              {{ item }}
+            </li>
+          </ul>
+        </div>
       </div>
     </UCard>
   </div>

@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { UserRole } from '../enums/user-role.enum';
 
 export class PublicUserDto {
   @ApiProperty({
@@ -12,6 +13,9 @@ export class PublicUserDto {
 
   @ApiProperty({ example: 'osvaldo@example.com' })
   email: string;
+
+  @ApiProperty({ enum: UserRole, example: UserRole.USER })
+  role: UserRole;
 
   @ApiPropertyOptional({ nullable: true, example: null })
   cv_text: string | null;

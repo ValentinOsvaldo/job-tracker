@@ -294,15 +294,9 @@ export class JobAnalysesService {
       return;
     }
 
-    const batchSize = Number(
-      this.configService.get('AI_BATCH_SIZE') ??
-        this.configService.get('GROQ_BATCH_SIZE') ??
-        5,
-    );
+    const batchSize = Number(this.configService.get('AI_BATCH_SIZE') ?? 5);
     const batchDelayMs = Number(
-      this.configService.get('AI_BATCH_DELAY_MS') ??
-        this.configService.get('GROQ_BATCH_DELAY_MS') ??
-        200,
+      this.configService.get('AI_BATCH_DELAY_MS') ?? 200,
     );
 
     for (let index = 0; index < tasks.length; index += batchSize) {

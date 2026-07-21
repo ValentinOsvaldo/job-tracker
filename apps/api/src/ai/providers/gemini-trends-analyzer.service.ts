@@ -6,17 +6,17 @@ import {
   parseTrendsResult,
 } from '../types/market-trends-result.type';
 import { TrendsAnalysisInput } from '../types/trends-analysis-input.type';
-import { GroqClientService } from './groq-client.service';
+import { GeminiClientService } from './gemini-client.service';
 
 @Injectable()
-export class GroqTrendsAnalyzerService implements TrendsAnalyzer {
-  constructor(private readonly groqClient: GroqClientService) {}
+export class GeminiTrendsAnalyzerService implements TrendsAnalyzer {
+  constructor(private readonly geminiClient: GeminiClientService) {}
 
   async summarizeTrends(
     input: TrendsAnalysisInput,
   ): Promise<MarketTrendsAiResult> {
     const prompt = buildTrendsPrompt(input);
-    const raw = await this.groqClient.complete(prompt, 0.4);
+    const raw = await this.geminiClient.complete(prompt, 0.4);
 
     try {
       return parseTrendsResult(raw);

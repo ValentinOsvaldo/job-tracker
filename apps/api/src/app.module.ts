@@ -7,7 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import {
   createPostgresOptions,
-  getDatabaseEnvConfigFromConfigService,
+  getDatabaseUrlFromConfigService,
 } from './config/database.config';
 import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
@@ -26,7 +26,7 @@ import { SeedModule } from './seed/seed.module';
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         ...createPostgresOptions(
-          getDatabaseEnvConfigFromConfigService(configService),
+          getDatabaseUrlFromConfigService(configService),
         ),
         autoLoadEntities: true,
         synchronize: configService.get('NODE_ENV') !== 'production',

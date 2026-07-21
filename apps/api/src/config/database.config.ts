@@ -1,60 +1,28 @@
 import { ConfigService } from '@nestjs/config';
 import { DataSourceOptions } from 'typeorm';
 
-export interface DatabaseEnvConfig {
-  host: string;
-  port: number;
-  username: string;
-  password: string;
-  database: string;
-  ssl?: boolean; // 👈 nuevo
+function isLocalHost(databaseUrl: string): boolean {
+  return /localhost|127\.0\.0\.1/.test(databaseUrl);
 }
 
-export function getDatabaseEnvConfigFromProcessEnv(
-  env: NodeJS.ProcessEnv,
-): DatabaseEnvConfig {
-  const required = (key: string): string => {
-    const value = env[key];
-    if (!value) {
-      throw new Error(`Missing environment variable: ${key}`);
-    }
-    return value;
-  };
-  return {
-    host: env.DB_HOST ?? 'localhost',
-    port: Number(env.DB_PORT ?? 5432),
-    username: required('DB_USERNAME'),
-    password: required('DB_PASSWORD'),
-    database: required('DB_NAME'),
-    ssl: env.DB_SSL === 'true', // 👈 nuevo
-  };
+export function getDatabaseUrlFromProcessEnv(env: NodeJS.ProcessEnv): string {
+  const value = env.DATABASE_URL;
+  if (!value) {
+    throw new Error('Missing environment variable: DATABASE_URL');
+  }
+  return value;
 }
 
-export function getDatabaseEnvConfigFromConfigService(
+export function getDatabaseUrlFromConfigService(
   configService: ConfigService,
-): DatabaseEnvConfig {
-  return {
-    host: configService.get<string>('DB_HOST') ?? 'localhost',
-    port: Number(configService.get<string>('DB_PORT') ?? 5432),
-    username: configService.getOrThrow<string>('DB_USERNAME'),
-    password: configService.getOrThrow<string>('DB_PASSWORD'),
-    database: configService.getOrThrow<string>('DB_NAME'),
-    ssl: configService.get<string>('DB_SSL') === 'true', // 👈 nuevo
-  };
+): string {
+  return configService.getOrThrow<string>('DATABASE_URL');
 }
 
-export function createPostgresOptions(
-  config: DatabaseEnvConfig,
-): DataSourceOptions {
+export function createPostgresOptions(databaseUrl: string): DataSourceOptions {
   return {
     type: 'postgres',
-    host: config.host,
-    port: config.port,
-    username: config.username,
-    password: config.password,
-    database: config.database,
-    ssl: config.ssl
-      ? { rejectUnauthorized: false } // 👈 Neon usa certs propios, así evitas el error de cert
-      : false,
+    url: databaseUrl,
+    ssl: isLocalHost(databaseUrl) ? false : { rejectUnauthorized: false }, // Neon uses its own certs
   };
 }

@@ -8,11 +8,11 @@ import {
   JobAnalysisResult,
   parseAnalysisResult,
 } from '../types/job-analysis-result.type';
-import { GroqClientService } from './groq-client.service';
+import { GeminiClientService } from './gemini-client.service';
 
 @Injectable()
-export class GroqJobAnalyzerService implements JobAnalyzer {
-  constructor(private readonly groqClient: GroqClientService) {}
+export class GeminiJobAnalyzerService implements JobAnalyzer {
+  constructor(private readonly geminiClient: GeminiClientService) {}
 
   async analyzeJob(
     job: Job,
@@ -26,7 +26,7 @@ export class GroqJobAnalyzerService implements JobAnalyzer {
     }
 
     const prompt = buildAnalysisPrompt(job, profile, user);
-    const raw = await this.groqClient.complete(prompt, 0.3);
+    const raw = await this.geminiClient.complete(prompt, 0.3);
 
     try {
       return parseAnalysisResult(raw);

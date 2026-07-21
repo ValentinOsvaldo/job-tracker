@@ -3,7 +3,7 @@ services:
     name: job-tracker-api
     runtime: docker
     region: oregon
-    plan: starter
+    plan: free
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: ./apps/api
     healthCheckPath: /api
@@ -41,7 +41,7 @@ services:
     name: job-tracker-scrapper
     runtime: docker
     region: oregon
-    plan: starter
+    plan: free
     dockerfilePath: ./apps/scrapper/Dockerfile
     dockerContext: ./apps/scrapper
     envVars:

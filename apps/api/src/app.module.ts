@@ -30,6 +30,8 @@ import { SeedModule } from './seed/seed.module';
         ),
         autoLoadEntities: true,
         synchronize: configService.get('NODE_ENV') !== 'production',
+        migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+        migrationsRun: configService.get('NODE_ENV') === 'production',
       }),
       inject: [ConfigService],
     }),

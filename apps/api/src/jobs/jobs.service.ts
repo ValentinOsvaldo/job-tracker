@@ -10,7 +10,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { In, Repository } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { JobAnalysis } from '../job-analyses/entities/job-analysis.entity';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
@@ -20,7 +20,10 @@ import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import { Job } from './entities/job.entity';
 import { JobUserStatus } from './entities/job-user-status.entity';
-import { JobInterestStatus } from './enums/job-interest-status.enum';
+import { InterestStatus } from './enums/interest-status.enum';
+import { JobSortBy } from './enums/job-sort-by.enum';
+import { SortDirection } from './enums/sort-direction.enum';
+import { UpdateJobStatusDto } from './dto/update-job-status.dto';
 import { JobsListQuery } from './types/jobs-list-query.type';
 
 function uniqueStrings(values: string[]): string[] {
@@ -100,9 +103,9 @@ export class JobsService {
         select: { id: true },
       });
 
-      this.jobAnalysesService.queueAnalysesForJobs(
-        insertedJobs.map((job) => job.id),
-      );
+      const insertedJobIds = insertedJobs.map((job) => job.id);
+      this.jobAnalysesService.queueAnalysesForJobs(insertedJobIds);
+      this.jobAnalysesService.queueDescriptionSummaries(insertedJobIds);
     }
 
     const result: IngestResult = {
@@ -142,7 +145,18 @@ export class JobsService {
   }
 
   async findAll(userId: string, query: JobsListQuery): Promise<PaginatedJobs> {
-    const { page, limit, profileId, minScore, source, status } = query;
+    const {
+      page,
+      limit,
+      profileId,
+      minScore,
+      source,
+      interest,
+      applied,
+      rejected,
+      sortBy,
+      sortDir,
+    } = query;
 
     if (profileId) {
       await this.assertProfileBelongsToUser(userId, profileId);
@@ -152,11 +166,13 @@ export class JobsService {
       source,
       profileId,
       minScore,
-      status,
+      interest,
+      applied,
+      rejected,
     });
+    this.applySorting(listQuery, userId, profileId, sortBy, sortDir);
     const total = await listQuery.getCount();
     const jobs = await listQuery
-      .orderBy('job.scraped_at', 'DESC')
       .skip((page - 1) * limit)
       .take(limit)
       .getMany();
@@ -195,8 +211,13 @@ export class JobsService {
   async updateUserStatus(
     userId: string,
     jobId: string,
-    status: JobInterestStatus | null,
-  ): Promise<{ job_id: string; status: JobInterestStatus | null }> {
+    patch: UpdateJobStatusDto,
+  ): Promise<{
+    job_id: string;
+    interest: InterestStatus | null;
+    applied: boolean;
+    rejected: boolean;
+  }> {
     const job = await this.jobsRepository.findOne({ where: { id: jobId } });
     if (!job) {
       throw new NotFoundException(`Job with id ${jobId} not found`);
@@ -206,31 +227,37 @@ export class JobsService {
       where: { user_id: userId, job_id: jobId },
     });
 
-    if (status === null) {
-      if (existing) {
-        await this.jobUserStatusRepository.remove(existing);
-      }
-      return { job_id: jobId, status: null };
-    }
-
-    if (existing) {
-      existing.status = status;
-      await this.jobUserStatusRepository.save(existing);
-    } else {
-      await this.jobUserStatusRepository.save({
+    const row =
+      existing ??
+      this.jobUserStatusRepository.create({
         user_id: userId,
         job_id: jobId,
-        status,
+        interest: null,
+        applied: false,
+        rejected: false,
       });
+
+    if ('interest' in patch) {
+      row.interest = patch.interest ?? null;
+    }
+    if (patch.applied !== undefined) {
+      row.applied = patch.applied;
+    }
+    if (patch.rejected !== undefined) {
+      row.rejected = patch.rejected;
     }
 
-    return { job_id: jobId, status };
+    const saved = await this.jobUserStatusRepository.save(row);
+
+    return {
+      job_id: jobId,
+      interest: saved.interest,
+      applied: saved.applied,
+      rejected: saved.rejected,
+    };
   }
 
-  private async attachUserStatuses(
-    jobs: Job[],
-    userId: string,
-  ): Promise<void> {
+  private async attachUserStatuses(jobs: Job[], userId: string): Promise<void> {
     if (jobs.length === 0) {
       return;
     }
@@ -243,11 +270,14 @@ export class JobsService {
     });
 
     const statusMap = new Map(
-      statuses.map((row) => [row.job_id, row.status] as const),
+      statuses.map((row) => [row.job_id, row] as const),
     );
 
     for (const job of jobs) {
-      job.user_status = statusMap.get(job.id) ?? null;
+      const status = statusMap.get(job.id);
+      job.user_interest = status?.interest ?? null;
+      job.user_applied = status?.applied ?? false;
+      job.user_rejected = status?.rejected ?? false;
     }
   }
 
@@ -257,7 +287,9 @@ export class JobsService {
       source?: JobSource;
       profileId?: string;
       minScore?: number;
-      status?: JobInterestStatus;
+      interest?: InterestStatus;
+      applied?: boolean;
+      rejected?: boolean;
     },
   ) {
     const qb = this.jobsRepository.createQueryBuilder('job');
@@ -266,16 +298,30 @@ export class JobsService {
       qb.andWhere('job.source = :source', { source: filters.source });
     }
 
-    if (filters.status) {
-      qb.innerJoin(
-        JobUserStatus,
-        'jus',
-        'jus.job_id = job.id AND jus.user_id = :statusUserId AND jus.status = :interestStatus',
-        {
-          statusUserId: userId,
-          interestStatus: filters.status,
-        },
-      );
+    if (
+      filters.interest !== undefined ||
+      filters.applied !== undefined ||
+      filters.rejected !== undefined
+    ) {
+      const conditions = ['jus.job_id = job.id', 'jus.user_id = :statusUserId'];
+      const params: Record<string, unknown> = { statusUserId: userId };
+
+      if (filters.interest !== undefined) {
+        conditions.push('jus.interest = :interest');
+        params.interest = filters.interest;
+      }
+
+      if (filters.applied !== undefined) {
+        conditions.push('jus.applied = :applied');
+        params.applied = filters.applied;
+      }
+
+      if (filters.rejected !== undefined) {
+        conditions.push('jus.rejected = :rejected');
+        params.rejected = filters.rejected;
+      }
+
+      qb.innerJoin(JobUserStatus, 'jus', conditions.join(' AND '), params);
     }
 
     if (filters.minScore !== undefined) {
@@ -305,6 +351,45 @@ export class JobsService {
     }
 
     return qb;
+  }
+
+  private applySorting(
+    qb: SelectQueryBuilder<Job>,
+    userId: string,
+    profileId: string | undefined,
+    sortBy: JobSortBy | undefined,
+    sortDir: SortDirection | undefined,
+  ): void {
+    const dir = sortDir === SortDirection.ASC ? 'ASC' : 'DESC';
+
+    switch (sortBy) {
+      case JobSortBy.LOCATION:
+        qb.orderBy('job.location', dir, 'NULLS LAST');
+        return;
+      case JobSortBy.SALARY:
+        qb.orderBy('job.salary_min', dir, 'NULLS LAST');
+        return;
+      case JobSortBy.SCORE:
+        qb.addSelect((subQuery) => {
+          const sub = subQuery
+            .select('MAX(ja.fit_score)', 'max_score')
+            .from(JobAnalysis, 'ja')
+            .innerJoin(SearchProfile, 'sp', 'sp.id = ja.profile_id')
+            .where('ja.job_id = job.id')
+            .andWhere('sp.user_id = :scoreUserId', { scoreUserId: userId });
+
+          if (profileId) {
+            sub.andWhere('ja.profile_id = :scoreProfileId', {
+              scoreProfileId: profileId,
+            });
+          }
+
+          return sub;
+        }, 'max_score').orderBy('max_score', dir, 'NULLS LAST');
+        return;
+      default:
+        qb.orderBy('job.scraped_at', 'DESC');
+    }
   }
 
   private async loadJobsWithUserAnalyses(
@@ -401,9 +486,7 @@ export class JobsService {
       });
 
       const payload = (await response.json().catch(() => null)) as
-        | ScrapeTriggerResultDto
-        | { detail?: unknown; message?: string }
-        | null;
+        ScrapeTriggerResultDto | { detail?: unknown; message?: string } | null;
 
       if (!response.ok) {
         const detail =
@@ -455,7 +538,8 @@ export class JobsService {
 
     const roleTerms = uniqueStrings(
       activeProfiles.map(
-        (profile) => ROLE_SEARCH_TERMS[profile.role] ?? `${profile.role} developer`,
+        (profile) =>
+          ROLE_SEARCH_TERMS[profile.role] ?? `${profile.role} developer`,
       ),
     );
 

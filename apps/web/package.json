@@ -20,6 +20,8 @@
     "@pinia/colada": "^1.4.2",
     "@pinia/colada-nuxt": "^1.0.2",
     "@pinia/nuxt": "^1.0.1",
+    "isomorphic-dompurify": "^3.19.0",
+    "marked": "^18.0.6",
     "nuxt": "^4.4.8",
     "nuxt-auth-utils": "0.5.29",
     "nuxt-authorization": "0.3.5",
@@ -29,6 +31,7 @@
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.16.0",
+    "@tailwindcss/typography": "^0.5.20",
     "eslint": "^10.6.0",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.5"

@@ -102,7 +102,11 @@ export class JobsController {
       source: query.source,
       profileId: query.profile_id,
       minScore: query.min_score,
-      status: query.status,
+      interest: query.interest,
+      applied: query.applied,
+      rejected: query.rejected,
+      sortBy: query.sort_by,
+      sortDir: query.sort_dir,
       page: query.page ?? 1,
       limit: query.limit ?? 20,
     };
@@ -147,11 +151,7 @@ export class JobsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() body: UpdateJobStatusDto,
   ) {
-    return this.jobsService.updateUserStatus(
-      req.user.id,
-      id,
-      body.status === undefined ? null : body.status,
-    );
+    return this.jobsService.updateUserStatus(req.user.id, id, body);
   }
 
   @Post(':id/analyses/regenerate')

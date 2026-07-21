@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
-import { JobInterestStatus } from '../enums/job-interest-status.enum';
+import { InterestStatus } from '../enums/interest-status.enum';
 
 @Entity('jobs')
 export class Job {
@@ -31,6 +31,13 @@ export class Job {
   @ApiPropertyOptional({ nullable: true })
   @Column({ type: 'text', nullable: true })
   description: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'AI-generated TLDR of the description',
+  })
+  @Column({ type: 'text', nullable: true })
+  description_summary: string | null;
 
   @ApiProperty({ example: 'https://linkedin.com/jobs/view/123456' })
   @Column({ type: 'varchar', length: 500, unique: true })
@@ -68,11 +75,21 @@ export class Job {
   @OneToMany(() => JobAnalysis, (analysis) => analysis.job)
   analyses: JobAnalysis[];
 
-  /** Populated per-request for the authenticated user (not a DB column). */
+  /** Populated per-request for the authenticated user (not DB columns). */
   @ApiPropertyOptional({
-    enum: JobInterestStatus,
+    enum: InterestStatus,
     nullable: true,
-    description: 'Current user interest/application status for this job',
+    description: 'Current user like/dislike status for this job',
   })
-  user_status?: JobInterestStatus | null;
+  user_interest?: InterestStatus | null;
+
+  @ApiPropertyOptional({
+    description: 'Whether the current user applied to this job',
+  })
+  user_applied?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Whether the current user was rejected from this job',
+  })
+  user_rejected?: boolean;
 }

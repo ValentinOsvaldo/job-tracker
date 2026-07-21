@@ -2,7 +2,6 @@ import type {
   CreateProfileInput,
   CvUploadResult,
   Job,
-  JobInterestStatus,
   JobStatusResponse,
   JobsListResponse,
   ListJobsQuery,
@@ -11,6 +10,7 @@ import type {
   ScrapeTriggerResult,
   SearchProfile,
   SeedResult,
+  UpdateJobStatusInput,
   UpdateProfileInput
 } from '~/types/api'
 
@@ -90,10 +90,10 @@ export function useApiClient() {
     })
   }
 
-  function updateJobStatus(jobId: string, status: JobInterestStatus | null) {
+  function updateJobStatus(jobId: string, patch: UpdateJobStatusInput) {
     return requestFetch<JobStatusResponse>(`/api/jobs/${jobId}/status`, {
       method: 'PATCH',
-      body: { status }
+      body: patch
     })
   }
 

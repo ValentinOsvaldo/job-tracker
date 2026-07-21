@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { JobInterestStatus } from '~/types/api'
+import type { InterestStatus } from '~/types/api'
 
 definePageMeta({
   middleware: 'auth'
@@ -18,9 +18,21 @@ const analyses = computed(() =>
   [...(job.value?.analyses ?? [])].sort((a, b) => b.fit_score - a.fit_score)
 )
 
-function onStatusUpdated(status: JobInterestStatus | null) {
+const showFullDescription = ref(false)
+
+const descriptionSummary = computed(() => {
+  if (!job.value) return null
+  if (job.value.description_summary) return job.value.description_summary
+  const description = job.value.description
+  if (!description) return null
+  return description.length > 280 ? `${description.slice(0, 280)}…` : description
+})
+
+function onStatusUpdated(result: { interest: InterestStatus | null, applied: boolean, rejected: boolean }) {
   if (job.value) {
-    job.value.user_status = status
+    job.value.user_interest = result.interest
+    job.value.user_applied = result.applied
+    job.value.user_rejected = result.rejected
   }
 }
 </script>
@@ -83,6 +95,7 @@ function onStatusUpdated(status: JobInterestStatus | null) {
           <span v-if="job.company">{{ job.company }}</span>
           <span v-if="job.company && job.location"> · </span>
           <span v-if="job.location">{{ job.location }}</span>
+          <span v-if="job.date_posted"> · Posted {{ formatDate(job.date_posted) }}</span>
         </p>
 
         <div class="flex flex-wrap items-center gap-3 pt-2">
@@ -95,7 +108,9 @@ function onStatusUpdated(status: JobInterestStatus | null) {
           </UButton>
           <JobStatusControls
             :job-id="job.id"
-            :status="job.user_status"
+            :interest="job.user_interest"
+            :applied="job.user_applied"
+            :rejected="job.user_rejected"
             size="sm"
             @updated="onStatusUpdated"
           />
@@ -106,37 +121,69 @@ function onStatusUpdated(status: JobInterestStatus | null) {
         </div>
       </div>
 
-      <UCard>
-        <template #header>
-          <h2 class="font-semibold text-highlighted">
-            Description
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+        <div class="space-y-3">
+          <h2 class="text-lg font-semibold text-highlighted">
+            Analyses
           </h2>
-        </template>
-        <div class="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-default">
-          {{ job.description || 'No description available.' }}
+          <div
+            v-if="!analyses.length"
+            class="text-sm text-muted"
+          >
+            No analyses for your profiles yet.
+          </div>
+          <div
+            v-else
+            class="space-y-4"
+          >
+            <AnalysisCard
+              v-for="analysis in analyses"
+              :key="analysis.id"
+              :analysis="analysis"
+            />
+          </div>
         </div>
-      </UCard>
 
-      <div class="space-y-3">
-        <h2 class="text-lg font-semibold text-highlighted">
-          Analyses
-        </h2>
-        <div
-          v-if="!analyses.length"
-          class="text-sm text-muted"
-        >
-          No analyses for your profiles yet.
-        </div>
-        <div
-          v-else
-          class="grid gap-4 lg:grid-cols-2"
-        >
-          <AnalysisCard
-            v-for="analysis in analyses"
-            :key="analysis.id"
-            :analysis="analysis"
-          />
-        </div>
+        <UCard>
+          <template #header>
+            <h2 class="font-semibold text-highlighted">
+              Description
+            </h2>
+          </template>
+
+          <div
+            v-if="!job.description"
+            class="text-sm text-muted"
+          >
+            No description available.
+          </div>
+          <template v-else-if="!showFullDescription">
+            <p class="text-sm text-default whitespace-pre-wrap">
+              {{ descriptionSummary }}
+            </p>
+            <UButton
+              class="mt-3"
+              size="sm"
+              color="neutral"
+              variant="subtle"
+              @click="showFullDescription = true"
+            >
+              Ver más
+            </UButton>
+          </template>
+          <template v-else>
+            <MarkdownContent :content="job.description" />
+            <UButton
+              class="mt-3"
+              size="sm"
+              color="neutral"
+              variant="subtle"
+              @click="showFullDescription = false"
+            >
+              Ver menos
+            </UButton>
+          </template>
+        </UCard>
       </div>
     </template>
   </div>

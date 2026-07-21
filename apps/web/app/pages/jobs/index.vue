@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Job, JobInterestStatus, JobSource, ListJobsQuery } from '~/types/api'
+import type { InterestStatus, Job, JobSortBy, JobSource, ListJobsQuery, SortDirection } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -12,16 +12,21 @@ const api = useApiClient()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
+const UTooltip = resolveComponent('UTooltip')
 const ScoreBadge = resolveComponent('ScoreBadge')
 const JobStatusControls = resolveComponent('JobStatusControls')
 
 const scraping = ref(false)
 
+type StatusFilter = 'all' | 'liked' | 'disliked' | 'applied' | 'rejected'
+
 const filters = reactive<{
   source: JobSource | 'all'
   profile_id: string | 'all'
-  status: JobInterestStatus | 'all'
+  status: StatusFilter
   min_score: number | undefined
+  sort_by: JobSortBy | undefined
+  sort_dir: SortDirection
   page: number
   limit: number
 }>({
@@ -29,6 +34,8 @@ const filters = reactive<{
   profile_id: 'all',
   status: 'all',
   min_score: undefined,
+  sort_by: undefined,
+  sort_dir: 'asc',
   page: 1,
   limit: 20
 })
@@ -36,10 +43,14 @@ const filters = reactive<{
 const queryFilters = computed<ListJobsQuery>(() => ({
   source: filters.source === 'all' ? undefined : filters.source,
   profile_id: filters.profile_id === 'all' ? undefined : filters.profile_id,
-  status: filters.status === 'all' ? undefined : filters.status,
+  interest: filters.status === 'liked' || filters.status === 'disliked' ? filters.status : undefined,
+  applied: filters.status === 'applied' ? true : undefined,
+  rejected: filters.status === 'rejected' ? true : undefined,
   min_score: typeof filters.min_score === 'number' && !Number.isNaN(filters.min_score)
     ? filters.min_score
     : undefined,
+  sort_by: filters.sort_by,
+  sort_dir: filters.sort_by ? filters.sort_dir : undefined,
   page: filters.page,
   limit: filters.limit
 }))
@@ -68,7 +79,7 @@ const profileItems = computed(() => [
   }))
 ])
 
-const statusItems = [
+const statusItems: { label: string, value: StatusFilter }[] = [
   { label: 'All statuses', value: 'all' },
   { label: 'Liked', value: 'liked' },
   { label: 'Disliked', value: 'disliked' },
@@ -83,14 +94,51 @@ const totalPages = computed(() => {
 })
 
 watch(
-  () => [filters.source, filters.profile_id, filters.status, filters.min_score, filters.limit],
+  () => [
+    filters.source,
+    filters.profile_id,
+    filters.status,
+    filters.min_score,
+    filters.limit,
+    filters.sort_by,
+    filters.sort_dir
+  ],
   () => {
     filters.page = 1
   }
 )
 
-function onStatusUpdated(job: Job, status: JobInterestStatus | null) {
-  job.user_status = status
+function toggleSort(field: JobSortBy) {
+  if (filters.sort_by !== field) {
+    filters.sort_by = field
+    filters.sort_dir = 'asc'
+  } else if (filters.sort_dir === 'asc') {
+    filters.sort_dir = 'desc'
+  } else {
+    filters.sort_by = undefined
+  }
+}
+
+function sortIcon(field: JobSortBy) {
+  if (filters.sort_by !== field) return 'i-lucide-arrow-up-down'
+  return filters.sort_dir === 'asc' ? 'i-lucide-arrow-up' : 'i-lucide-arrow-down'
+}
+
+function sortableHeader(label: string, field: JobSortBy) {
+  return h(UButton, {
+    color: 'neutral',
+    variant: 'ghost',
+    size: 'xs',
+    trailingIcon: sortIcon(field),
+    class: '-mx-2.5',
+    onClick: () => toggleSort(field)
+  }, () => label)
+}
+
+function onStatusUpdated(job: Job, result: { interest: InterestStatus | null, applied: boolean, rejected: boolean }) {
+  job.user_interest = result.interest
+  job.user_applied = result.applied
+  job.user_rejected = result.rejected
 }
 
 const deletingId = ref<string | null>(null)
@@ -120,10 +168,10 @@ const columns = [
     header: 'Title',
     cell: ({ row }: { row: { original: { id: string, title: string, company: string | null } } }) => {
       return h('div', { class: 'min-w-0' }, [
-        h(resolveComponent('NuxtLink'), {
+        h(UTooltip, { text: row.original.title }, () => h(resolveComponent('NuxtLink'), {
           to: `/jobs/${row.original.id}`,
-          class: 'font-medium text-highlighted hover:underline'
-        }, () => row.original.title),
+          class: 'block max-w-[220px] truncate font-medium text-highlighted hover:underline'
+        }, () => row.original.title)),
         row.original.company
           ? h('p', { class: 'text-xs text-muted truncate' }, row.original.company)
           : null
@@ -138,13 +186,13 @@ const columns = [
   },
   {
     id: 'score',
-    header: 'Score',
+    header: () => sortableHeader('Score', 'score'),
     cell: ({ row }: { row: { original: { analyses: { fit_score: number }[] } } }) =>
       h(ScoreBadge, { score: bestFitScore(row.original.analyses) })
   },
   {
     id: 'salary',
-    header: 'Salary',
+    header: () => sortableHeader('Salary', 'salary'),
     cell: ({ row }: { row: { original: { salary_min: number | null, salary_max: number | null, analyses: { salary_min: number | null, salary_max: number | null, salary_is_inferred: boolean, fit_score: number }[] } } }) => {
       const best = [...(row.original.analyses ?? [])].sort((a, b) => b.fit_score - a.fit_score)[0]
       return formatSalary(
@@ -156,8 +204,13 @@ const columns = [
   },
   {
     accessorKey: 'location',
-    header: 'Location',
+    header: () => sortableHeader('Location', 'location'),
     cell: ({ row }: { row: { original: { location: string | null } } }) => row.original.location || '—'
+  },
+  {
+    accessorKey: 'date_posted',
+    header: 'Posted',
+    cell: ({ row }: { row: { original: { date_posted: string | null } } }) => formatDate(row.original.date_posted)
   },
   {
     id: 'status',
@@ -165,8 +218,10 @@ const columns = [
     cell: ({ row }: { row: { original: Job } }) =>
       h(JobStatusControls, {
         jobId: row.original.id,
-        status: row.original.user_status ?? null,
-        onUpdated: (status: JobInterestStatus | null) => onStatusUpdated(row.original, status)
+        interest: row.original.user_interest ?? null,
+        applied: row.original.user_applied ?? false,
+        rejected: row.original.user_rejected ?? false,
+        onUpdated: (result: { interest: InterestStatus | null, applied: boolean, rejected: boolean }) => onStatusUpdated(row.original, result)
       })
   },
   {

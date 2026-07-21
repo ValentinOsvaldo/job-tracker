@@ -1,44 +1,49 @@
 <script setup lang="ts">
-import type { JobInterestStatus } from '~/types/api'
+import type { InterestStatus } from '~/types/api'
 
 const props = defineProps<{
   jobId: string
-  status: JobInterestStatus | null | undefined
+  interest: InterestStatus | null | undefined
+  applied: boolean | undefined
+  rejected: boolean | undefined
   size?: 'xs' | 'sm' | 'md'
 }>()
 
 const emit = defineEmits<{
-  updated: [status: JobInterestStatus | null]
+  updated: [result: { interest: InterestStatus | null, applied: boolean, rejected: boolean }]
 }>()
 
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
-const pending = ref<JobInterestStatus | 'clear' | null>(null)
+const pending = ref(false)
 
 const interestOptions: {
-  value: JobInterestStatus
+  value: InterestStatus
   label: string
   icon: string
-  color: 'success' | 'error' | 'primary' | 'warning'
+  color: 'success' | 'error'
 }[] = [
   { value: 'liked', label: 'Like', icon: 'i-lucide-thumbs-up', color: 'success' },
   { value: 'disliked', label: 'Dislike', icon: 'i-lucide-thumbs-down', color: 'error' }
 ]
 
-const pipelineOptions: typeof interestOptions = [
-  { value: 'applied', label: 'Applied', icon: 'i-lucide-send', color: 'primary' },
-  { value: 'rejected', label: 'Rejected', icon: 'i-lucide-x', color: 'warning' }
+const pipelineOptions: {
+  key: 'applied' | 'rejected'
+  label: string
+  icon: string
+  color: 'primary' | 'warning'
+}[] = [
+  { key: 'applied', label: 'Applied', icon: 'i-lucide-send', color: 'primary' },
+  { key: 'rejected', label: 'Rejected', icon: 'i-lucide-x', color: 'warning' }
 ]
 
-async function setStatus(next: JobInterestStatus | null) {
-  const current = props.status ?? null
-  const target = current === next ? null : next
-  pending.value = target ?? 'clear'
+async function applyPatch(patch: { interest?: InterestStatus | null, applied?: boolean, rejected?: boolean }) {
+  pending.value = true
 
   try {
-    const result = await api.updateJobStatus(props.jobId, target)
-    emit('updated', result.status)
+    const result = await api.updateJobStatus(props.jobId, patch)
+    emit('updated', { interest: result.interest, applied: result.applied, rejected: result.rejected })
     await queryCache.invalidateQueries({ key: ['jobs'] })
     await queryCache.invalidateQueries({ key: ['job', props.jobId] })
   } catch (err: unknown) {
@@ -48,8 +53,18 @@ async function setStatus(next: JobInterestStatus | null) {
       color: 'error'
     })
   } finally {
-    pending.value = null
+    pending.value = false
   }
+}
+
+function setInterest(next: InterestStatus) {
+  const target = props.interest === next ? null : next
+  applyPatch({ interest: target })
+}
+
+function togglePipeline(key: 'applied' | 'rejected') {
+  const current = key === 'applied' ? props.applied : props.rejected
+  applyPatch({ [key]: !current })
 }
 </script>
 
@@ -61,29 +76,27 @@ async function setStatus(next: JobInterestStatus | null) {
         :key="opt.value"
         :icon="opt.icon"
         :size="size ?? 'xs'"
-        :color="status === opt.value ? opt.color : 'neutral'"
-        :variant="status === opt.value ? 'solid' : 'subtle'"
-        :loading="pending === opt.value || (pending === 'clear' && status === opt.value)"
-        :disabled="pending !== null"
+        :color="interest === opt.value ? opt.color : 'neutral'"
+        :variant="interest === opt.value ? 'solid' : 'subtle'"
+        :disabled="pending"
         :aria-label="opt.label"
         :title="opt.label"
-        @click="setStatus(opt.value)"
+        @click="setInterest(opt.value)"
       />
     </div>
     <div class="h-4 w-px shrink-0 bg-default" />
     <div class="flex items-center gap-1">
       <UButton
         v-for="opt in pipelineOptions"
-        :key="opt.value"
+        :key="opt.key"
         :icon="opt.icon"
         :size="size ?? 'xs'"
-        :color="status === opt.value ? opt.color : 'neutral'"
-        :variant="status === opt.value ? 'solid' : 'subtle'"
-        :loading="pending === opt.value || (pending === 'clear' && status === opt.value)"
-        :disabled="pending !== null"
+        :color="(opt.key === 'applied' ? applied : rejected) ? opt.color : 'neutral'"
+        :variant="(opt.key === 'applied' ? applied : rejected) ? 'solid' : 'subtle'"
+        :disabled="pending"
         :aria-label="opt.label"
         :title="opt.label"
-        @click="setStatus(opt.value)"
+        @click="togglePipeline(opt.key)"
       />
     </div>
   </div>

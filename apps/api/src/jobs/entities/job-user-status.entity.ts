@@ -11,12 +11,12 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/user.entity';
-import { JobInterestStatus } from '../enums/job-interest-status.enum';
+import { InterestStatus } from '../enums/interest-status.enum';
 import { Job } from './job.entity';
 
 @Entity('job_user_statuses')
 @Unique(['user_id', 'job_id'])
-@Index(['user_id', 'status'])
+@Index(['user_id', 'interest'])
 export class JobUserStatus {
   @ApiProperty({ format: 'uuid' })
   @PrimaryGeneratedColumn('uuid')
@@ -30,9 +30,17 @@ export class JobUserStatus {
   @Column({ type: 'uuid' })
   job_id: string;
 
-  @ApiProperty({ enum: JobInterestStatus })
-  @Column({ type: 'enum', enum: JobInterestStatus })
-  status: JobInterestStatus;
+  @ApiProperty({ enum: InterestStatus, nullable: true })
+  @Column({ type: 'enum', enum: InterestStatus, nullable: true })
+  interest: InterestStatus | null;
+
+  @ApiProperty({ example: false })
+  @Column({ type: 'boolean', default: false })
+  applied: boolean;
+
+  @ApiProperty({ example: false })
+  @Column({ type: 'boolean', default: false })
+  rejected: boolean;
 
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })

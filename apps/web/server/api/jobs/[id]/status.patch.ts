@@ -1,4 +1,4 @@
-import type { JobStatusResponse } from '../../../../app/types/api'
+import type { JobStatusResponse, UpdateJobStatusInput } from '../../../../app/types/api'
 import { backendFetch } from '../../../utils/backend'
 
 export default defineEventHandler(async (event) => {
@@ -7,10 +7,10 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
-  const body = await readBody<{ status: string | null }>(event)
+  const body = await readBody<UpdateJobStatusInput>(event)
 
   return backendFetch<JobStatusResponse>(event, `/api/jobs/${id}/status`, {
     method: 'PATCH',
-    body: { status: body?.status ?? null }
+    body
   })
 })

@@ -1,6 +1,8 @@
 export type ProfileRole = 'frontend' | 'backend' | 'fullstack' | 'mobile'
 export type JobSource = 'linkedin' | 'indeed'
-export type JobInterestStatus = 'liked' | 'disliked' | 'applied' | 'rejected'
+export type InterestStatus = 'liked' | 'disliked'
+export type JobSortBy = 'salary' | 'score' | 'location'
+export type SortDirection = 'asc' | 'desc'
 
 export interface PublicUser {
   id: string
@@ -56,6 +58,7 @@ export interface Job {
   company: string | null
   location: string | null
   description: string | null
+  description_summary: string | null
   url: string
   source: JobSource
   date_posted: string | null
@@ -65,7 +68,9 @@ export interface Job {
   salary_interval: string | null
   scraped_at: string
   analyses: JobAnalysis[]
-  user_status?: JobInterestStatus | null
+  user_interest?: InterestStatus | null
+  user_applied?: boolean
+  user_rejected?: boolean
 }
 
 export interface JobsListResponse {
@@ -79,14 +84,26 @@ export interface ListJobsQuery {
   source?: JobSource
   profile_id?: string
   min_score?: number
-  status?: JobInterestStatus
+  interest?: InterestStatus
+  applied?: boolean
+  rejected?: boolean
+  sort_by?: JobSortBy
+  sort_dir?: SortDirection
   page?: number
   limit?: number
 }
 
+export interface UpdateJobStatusInput {
+  interest?: InterestStatus | null
+  applied?: boolean
+  rejected?: boolean
+}
+
 export interface JobStatusResponse {
   job_id: string
-  status: JobInterestStatus | null
+  interest: InterestStatus | null
+  applied: boolean
+  rejected: boolean
 }
 
 export interface SeedResult {

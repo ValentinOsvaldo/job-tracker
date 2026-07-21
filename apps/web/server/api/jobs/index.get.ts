@@ -9,6 +9,11 @@ export default defineEventHandler(async (event) => {
       source: query.source as string | undefined,
       profile_id: query.profile_id as string | undefined,
       min_score: query.min_score !== undefined ? Number(query.min_score) : undefined,
+      interest: query.interest as string | undefined,
+      applied: query.applied !== undefined ? query.applied === 'true' : undefined,
+      rejected: query.rejected !== undefined ? query.rejected === 'true' : undefined,
+      sort_by: query.sort_by as string | undefined,
+      sort_dir: query.sort_dir as string | undefined,
       page: query.page !== undefined ? Number(query.page) : undefined,
       limit: query.limit !== undefined ? Number(query.limit) : undefined
     }

@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -10,7 +11,9 @@ import {
   Min,
 } from 'class-validator';
 import { JobSource } from '../enums/job-source.enum';
-import { JobInterestStatus } from '../enums/job-interest-status.enum';
+import { InterestStatus } from '../enums/interest-status.enum';
+import { JobSortBy } from '../enums/job-sort-by.enum';
+import { SortDirection } from '../enums/sort-direction.enum';
 
 export class ListJobsQueryDto {
   @ApiPropertyOptional({ enum: JobSource, example: JobSource.LINKEDIN })
@@ -31,10 +34,34 @@ export class ListJobsQueryDto {
   @Max(10)
   min_score?: number;
 
-  @ApiPropertyOptional({ enum: JobInterestStatus })
+  @ApiPropertyOptional({ enum: InterestStatus })
   @IsOptional()
-  @IsEnum(JobInterestStatus)
-  status?: JobInterestStatus;
+  @IsEnum(InterestStatus)
+  interest?: InterestStatus;
+
+  @ApiPropertyOptional({ description: 'Filter to jobs the user applied to' })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  applied?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Filter to jobs the user was rejected from',
+  })
+  @IsOptional()
+  @Type(() => Boolean)
+  @IsBoolean()
+  rejected?: boolean;
+
+  @ApiPropertyOptional({ enum: JobSortBy })
+  @IsOptional()
+  @IsEnum(JobSortBy)
+  sort_by?: JobSortBy;
+
+  @ApiPropertyOptional({ enum: SortDirection })
+  @IsOptional()
+  @IsEnum(SortDirection)
+  sort_dir?: SortDirection;
 
   @ApiPropertyOptional({ minimum: 1, default: 1, example: 1 })
   @IsOptional()

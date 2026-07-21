@@ -23,3 +23,12 @@ export function bestFitScore(analyses: { fit_score: number }[] | undefined) {
   if (!analyses?.length) return null
   return Math.max(...analyses.map(a => a.fit_score))
 }
+
+export function formatDate(value: string | null | undefined) {
+  if (!value) return '—'
+  return new Date(value).toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  })
+}

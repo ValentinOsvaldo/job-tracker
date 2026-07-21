@@ -8,8 +8,9 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { AI_JOB_ANALYZER } from '../ai/ai.constants';
+import { AI_JOB_ANALYZER, AI_JOB_SUMMARIZER } from '../ai/ai.constants';
 import { JobAnalyzer } from '../ai/interfaces/job-analyzer.interface';
+import { JobSummarizer } from '../ai/interfaces/job-summarizer.interface';
 import { Job } from '../jobs/entities/job.entity';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
@@ -40,6 +41,8 @@ export class JobAnalysesService {
     private readonly profilesRepository: Repository<SearchProfile>,
     @Inject(AI_JOB_ANALYZER)
     private readonly jobAnalyzer: JobAnalyzer,
+    @Inject(AI_JOB_SUMMARIZER)
+    private readonly jobSummarizer: JobSummarizer,
     private readonly configService: ConfigService,
   ) {}
 
@@ -95,6 +98,19 @@ export class JobAnalysesService {
       .then((tasks) => this.runBatch(tasks))
       .catch((error: unknown) => {
         this.logger.error('Failed to queue analyses for jobs', error);
+      });
+  }
+
+  queueDescriptionSummaries(jobIds: string[]): void {
+    if (jobIds.length === 0) {
+      return;
+    }
+
+    void this.jobsRepository
+      .find({ where: { id: In(jobIds) } })
+      .then((jobs) => this.runSummaryBatch(jobs))
+      .catch((error: unknown) => {
+        this.logger.error('Failed to queue description summaries', error);
       });
   }
 
@@ -349,6 +365,43 @@ export class JobAnalysesService {
     } catch (error: unknown) {
       this.logger.warn(
         `Analysis failed for job ${task.job.id} and profile ${task.profile.id}`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  private async runSummaryBatch(jobs: Job[]): Promise<void> {
+    const pending = jobs.filter((job) => job.description);
+
+    if (pending.length === 0) {
+      return;
+    }
+
+    const batchSize = Number(this.configService.get('AI_BATCH_SIZE') ?? 5);
+    const batchDelayMs = Number(
+      this.configService.get('AI_BATCH_DELAY_MS') ?? 200,
+    );
+
+    for (let index = 0; index < pending.length; index += batchSize) {
+      const chunk = pending.slice(index, index + batchSize);
+
+      await Promise.allSettled(chunk.map((job) => this.summarizeAndSave(job)));
+
+      if (index + batchSize < pending.length) {
+        await this.sleep(batchDelayMs);
+      }
+    }
+  }
+
+  private async summarizeAndSave(job: Job): Promise<void> {
+    try {
+      const summary = await this.jobSummarizer.summarize(job);
+      await this.jobsRepository.update(job.id, {
+        description_summary: summary,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Description summary failed for job ${job.id}`,
         error instanceof Error ? error.message : error,
       );
     }

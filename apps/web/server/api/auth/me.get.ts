@@ -16,8 +16,15 @@ export default defineEventHandler(async (event) => {
 
   // Cast: nuxt-auth-utils vs Nitro h3 v1/v2 event type mismatch
   const session = await getUserSession(event as never)
+  // Keep the session cookie minimal — cv_text can be tens of KB and
+  // would push the sealed cookie past the browser's 4096-byte limit.
   await setUserSession(event as never, {
-    user: normalized,
+    user: {
+      id: normalized.id,
+      name: normalized.name,
+      email: normalized.email,
+      created_at: normalized.created_at
+    },
     secure: session.secure
   })
 

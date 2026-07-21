@@ -58,8 +58,17 @@ export async function setAuthSession(event: AuthEvent, login: LoginResponse) {
     created_at: String(login.user.created_at)
   }
 
+  // Only minimal identity fields go in the session cookie. cv_text can be
+  // tens of KB and pushes the sealed cookie past the browser's 4096-byte
+  // Set-Cookie limit, which makes the browser silently drop it — the user
+  // looks logged in but the cookie never actually updates.
   await setUserSession(event, {
-    user,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      created_at: user.created_at
+    },
     secure: {
       accessToken: login.accessToken,
       refreshToken: login.refreshToken

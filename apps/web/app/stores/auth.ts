@@ -43,7 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function refreshUser() {
-    const requestFetch = useRequestFetch()
+    const requestFetch = useAuthFetch()
     const me = await requestFetch('/api/auth/me')
     await fetchSession()
     return me

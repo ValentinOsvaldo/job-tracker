@@ -30,7 +30,7 @@ function cleanQuery(query: Record<string, string | number | boolean | undefined 
  * so Nitro proxies can authenticate. Plain $fetch does not, which causes 401 on reload.
  */
 export function useApiClient() {
-  const requestFetch = useRequestFetch()
+  const requestFetch = useAuthFetch()
 
   const profilesQuery = {
     key: ['profiles'] as const,

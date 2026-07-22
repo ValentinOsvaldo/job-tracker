@@ -23,6 +23,23 @@ export interface CreateUserInput {
   role?: UserRole
 }
 
+export interface UpdateUserInput {
+  name?: string
+  email?: string
+  password?: string
+  role?: UserRole
+}
+
+export interface UpdateSelfInput {
+  name?: string
+  email?: string
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string
+  newPassword: string
+}
+
 export interface SearchProfile {
   id: string
   user_id: string

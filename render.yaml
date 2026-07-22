@@ -6,7 +6,7 @@ services:
     plan: free
     dockerfilePath: ./apps/api/Dockerfile
     dockerContext: ./apps/api
-    healthCheckPath: /api
+    healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
@@ -44,6 +44,7 @@ services:
     plan: free
     dockerfilePath: ./apps/scrapper/Dockerfile
     dockerContext: ./apps/scrapper
+    healthCheckPath: /health
     envVars:
       - key: NESTJS_URL
         sync: false # https://job-tracker-api.onrender.com (Render assigns this on first deploy)

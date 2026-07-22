@@ -28,6 +28,7 @@ async function bootstrap() {
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
       'access-token',
     )
+    .addTag('health', 'Health checks')
     .addTag('auth', 'Authentication')
     .addTag('users', 'User management')
     .addTag('jobs', 'Job ingestion and listing')

@@ -1,4 +1,5 @@
 import type {
+  ChangePasswordInput,
   CreateProfileInput,
   CreateUserInput,
   CvAnalysisResponse,
@@ -13,7 +14,9 @@ import type {
   SearchProfile,
   SeedResult,
   UpdateJobStatusInput,
-  UpdateProfileInput
+  UpdateProfileInput,
+  UpdateSelfInput,
+  UpdateUserInput
 } from '~/types/api'
 
 function cleanQuery(query: Record<string, string | number | boolean | undefined | null>) {
@@ -62,6 +65,11 @@ export function useApiClient() {
   const meQuery = {
     key: ['me'] as const,
     query: () => requestFetch<PublicUser>('/api/auth/me')
+  }
+
+  const usersQuery = {
+    key: ['users'] as const,
+    query: () => requestFetch<PublicUser[]>('/api/users')
   }
 
   function cvAnalysisQuery(refresh = false) {
@@ -123,12 +131,29 @@ export function useApiClient() {
     return requestFetch<PublicUser>('/api/users', { method: 'POST', body })
   }
 
+  function updateUser(id: string, body: UpdateUserInput) {
+    return requestFetch<PublicUser>(`/api/users/${id}`, { method: 'PATCH', body })
+  }
+
+  function deleteUser(id: string) {
+    return requestFetch<{ ok: true }>(`/api/users/${id}`, { method: 'DELETE' })
+  }
+
+  function updateMe(body: UpdateSelfInput) {
+    return requestFetch<PublicUser>('/api/users/me', { method: 'PATCH', body })
+  }
+
+  function changePassword(body: ChangePasswordInput) {
+    return requestFetch<{ ok: true }>('/api/users/me/password', { method: 'PATCH', body })
+  }
+
   return {
     profilesQuery,
     jobsQuery,
     jobQuery,
     trendsQuery,
     meQuery,
+    usersQuery,
     cvAnalysisQuery,
     createProfile,
     updateProfile,
@@ -138,6 +163,10 @@ export function useApiClient() {
     updateJobStatus,
     deleteJob,
     runSeed,
-    createUser
+    createUser,
+    updateUser,
+    deleteUser,
+    updateMe,
+    changePassword
   }
 }

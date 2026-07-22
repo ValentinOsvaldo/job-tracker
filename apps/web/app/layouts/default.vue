@@ -1,8 +1,10 @@
 <script setup lang="ts">
+import type { NavigationMenuItem } from '@nuxt/ui'
+
 const auth = useAuthStore()
 const route = useRoute()
 
-const links = computed(() => [
+const links = computed<NavigationMenuItem[]>(() => [
   {
     label: 'Dashboard',
     to: '/',
@@ -35,6 +37,12 @@ const links = computed(() => [
     active: route.path.startsWith('/ats-check')
   },
   {
+    label: 'Users',
+    to: '/users',
+    icon: 'i-lucide-user-cog',
+    active: route.path.startsWith('/users')
+  },
+  {
     label: 'Settings',
     to: '/settings',
     icon: 'i-lucide-settings',
@@ -61,39 +69,68 @@ const accountItems = computed(() => [
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-default">
-    <UHeader
-      mode="drawer"
-      title="Job Tracker"
+  <UDashboardGroup>
+    <UDashboardSidebar
+      collapsible
+      resizable
     >
-      <UNavigationMenu :items="links" />
+      <template #header="{ collapsed }">
+        <div class="flex items-center gap-2 px-1">
+          <UIcon
+            name="i-lucide-briefcase"
+            class="size-5 text-primary shrink-0"
+          />
+          <span
+            v-if="!collapsed"
+            class="font-semibold text-highlighted truncate"
+          >
+            Job Tracker
+          </span>
+        </div>
+      </template>
 
-      <template #right>
-        <UDropdownMenu :items="accountItems">
+      <template #default="{ collapsed }">
+        <UNavigationMenu
+          :collapsed="collapsed"
+          :items="links"
+          orientation="vertical"
+        />
+      </template>
+
+      <template #footer="{ collapsed }">
+        <UDropdownMenu
+          :items="accountItems"
+          class="w-full"
+        >
           <UButton
             color="neutral"
             variant="ghost"
-            icon="i-lucide-user"
+            :icon="collapsed ? 'i-lucide-user' : undefined"
+            :label="collapsed ? undefined : (auth.user?.name ?? 'Account')"
             :loading="auth.loading"
             :aria-label="auth.user?.name ?? 'Account'"
+            block
+            class="justify-start"
           />
         </UDropdownMenu>
-        <UColorModeButton />
+      </template>
+    </UDashboardSidebar>
+
+    <UDashboardPanel>
+      <template #header>
+        <UDashboardNavbar>
+          <template #leading>
+            <UDashboardSidebarCollapse />
+          </template>
+          <template #right>
+            <UColorModeButton />
+          </template>
+        </UDashboardNavbar>
       </template>
 
       <template #body>
-        <UNavigationMenu
-          :items="links"
-          orientation="vertical"
-          class="-mx-2.5"
-        />
-      </template>
-    </UHeader>
-
-    <UMain class="flex-1">
-      <UContainer class="py-6 sm:py-8">
         <slot />
-      </UContainer>
-    </UMain>
-  </div>
+      </template>
+    </UDashboardPanel>
+  </UDashboardGroup>
 </template>

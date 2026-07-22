@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
 import { AuthModule } from './auth/auth.module';
@@ -10,6 +11,7 @@ import {
   createPostgresOptions,
   getDatabaseUrlFromConfigService,
 } from './config/database.config';
+import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { JobsModule } from './jobs/jobs.module';
 import { AiModule } from './ai/ai.module';
@@ -23,6 +25,7 @@ import { SeedModule } from './seed/seed.module';
       isGlobal: true,
       envFilePath: join(__dirname, '..', '.env'),
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -36,6 +39,7 @@ import { SeedModule } from './seed/seed.module';
       }),
       inject: [ConfigService],
     }),
+    HealthModule,
     UsersModule,
     AuthModule,
     JobsModule,

@@ -241,8 +241,29 @@ def do_scrape(params: ScrapeParams | None = None) -> dict:
     }
 
 
+def ping_api() -> None:
+    """Keep the NestJS API warm on Render's free tier (idles after ~15 min
+    without inbound traffic). Never raises — a failed ping shouldn't kill
+    the scheduler."""
+    base_url = NESTJS_URL.rstrip("/")
+    try:
+        response = httpx.get(f"{base_url}/api/health", timeout=10)
+        print(f"Keep-alive ping to API ({base_url}/api/health): {response.status_code}")
+    except httpx.HTTPError as exc:
+        print(f"Keep-alive ping to API ({base_url}/api/health) failed: {exc}")
+
+
 scheduler.add_job(do_scrape, "interval", hours=SCRAPE_INTERVAL_HOURS)
+scheduler.add_job(ping_api, "interval", minutes=10)
 scheduler.start()
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
 
 
 @app.post("/scrape")

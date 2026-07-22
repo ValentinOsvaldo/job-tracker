@@ -41,42 +41,44 @@ const links = computed(() => [
     active: route.path.startsWith('/settings')
   }
 ])
+
+const accountItems = computed(() => [
+  [
+    {
+      label: auth.user?.name ?? 'Account',
+      icon: 'i-lucide-user',
+      type: 'label' as const
+    }
+  ],
+  [
+    {
+      label: 'Logout',
+      icon: 'i-lucide-log-out',
+      onSelect: () => auth.logout()
+    }
+  ]
+])
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col bg-default">
-    <UHeader>
-      <template #left>
-        <NuxtLink
-          to="/"
-          class="font-semibold text-highlighted"
-        >
-          Job Tracker
-        </NuxtLink>
-
-        <UNavigationMenu
-          :items="links"
-          class="hidden md:flex"
-        />
-      </template>
+    <UHeader
+      mode="drawer"
+      title="Job Tracker"
+    >
+      <UNavigationMenu :items="links" />
 
       <template #right>
-        <span
-          v-if="auth.user"
-          class="hidden sm:inline text-sm text-muted"
-        >
-          {{ auth.user.name }}
-        </span>
+        <UDropdownMenu :items="accountItems">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            icon="i-lucide-user"
+            :loading="auth.loading"
+            :aria-label="auth.user?.name ?? 'Account'"
+          />
+        </UDropdownMenu>
         <UColorModeButton />
-        <UButton
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-log-out"
-          :loading="auth.loading"
-          @click="auth.logout()"
-        >
-          Logout
-        </UButton>
       </template>
 
       <template #body>

@@ -10,6 +10,8 @@ const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
 const auth = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
@@ -21,7 +23,7 @@ const scraping = ref(false)
 
 type StatusFilter = 'all' | 'liked' | 'disliked' | 'applied' | 'rejected'
 
-const filters = reactive<{
+type Filters = {
   source: JobSource | 'all'
   profile_id: string | 'all'
   status: StatusFilter
@@ -30,16 +32,53 @@ const filters = reactive<{
   sort_dir: SortDirection
   page: number
   limit: number
-}>({
-  source: 'all',
-  profile_id: 'all',
-  status: 'all',
-  min_score: undefined,
-  sort_by: undefined,
-  sort_dir: 'asc',
-  page: 1,
-  limit: 20
-})
+}
+
+function readQueryString(value: unknown): string | undefined {
+  const raw = Array.isArray(value) ? value[0] : value
+  return typeof raw === 'string' && raw.length > 0 ? raw : undefined
+}
+
+function readQueryNumber(value: unknown): number | undefined {
+  const raw = readQueryString(value)
+  if (raw === undefined) return undefined
+  const num = Number(raw)
+  return Number.isNaN(num) ? undefined : num
+}
+
+function filtersFromQuery(query: Record<string, unknown>): Filters {
+  return {
+    source: (readQueryString(query.source) as JobSource | undefined) ?? 'all',
+    profile_id: readQueryString(query.profile_id) ?? 'all',
+    status: (readQueryString(query.status) as StatusFilter | undefined) ?? 'all',
+    min_score: readQueryNumber(query.min_score),
+    sort_by: readQueryString(query.sort_by) as JobSortBy | undefined,
+    sort_dir: (readQueryString(query.sort_dir) as SortDirection | undefined) ?? 'asc',
+    page: readQueryNumber(query.page) ?? 1,
+    limit: readQueryNumber(query.limit) ?? 20
+  }
+}
+
+function queryFromFilters(source: Filters): Record<string, string> {
+  const query: Record<string, string> = {}
+  if (source.source !== 'all') query.source = source.source
+  if (source.profile_id !== 'all') query.profile_id = source.profile_id
+  if (source.status !== 'all') query.status = source.status
+  if (source.min_score !== undefined) query.min_score = String(source.min_score)
+  if (source.sort_by) {
+    query.sort_by = source.sort_by
+    query.sort_dir = source.sort_dir
+  }
+  if (source.page !== 1) query.page = String(source.page)
+  if (source.limit !== 20) query.limit = String(source.limit)
+  return query
+}
+
+const filters = reactive<Filters>(filtersFromQuery(route.query))
+
+// Guards the two watchers below from feeding into each other while a URL
+// (browser back/forward, pasted link) is being applied back onto `filters`.
+let syncingFromRoute = false
 
 const queryFilters = computed<ListJobsQuery>(() => ({
   source: filters.source === 'all' ? undefined : filters.source,
@@ -105,7 +144,31 @@ watch(
     filters.sort_dir
   ],
   () => {
-    filters.page = 1
+    if (!syncingFromRoute) filters.page = 1
+  }
+)
+
+watch(
+  filters,
+  () => {
+    if (syncingFromRoute) return
+    router.replace({ query: queryFromFilters(filters) })
+  },
+  { deep: true }
+)
+
+watch(
+  () => route.query,
+  (query) => {
+    const next = filtersFromQuery(query)
+    const changed = (Object.keys(next) as (keyof Filters)[]).some(key => next[key] !== filters[key])
+    if (!changed) return
+
+    syncingFromRoute = true
+    Object.assign(filters, next)
+    nextTick(() => {
+      syncingFromRoute = false
+    })
   }
 )
 

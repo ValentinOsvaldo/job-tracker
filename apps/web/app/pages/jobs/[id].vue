@@ -121,7 +121,7 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
         </div>
       </div>
 
-      <div class="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
+      <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div class="space-y-3">
           <h2 class="text-lg font-semibold text-highlighted">
             Analyses

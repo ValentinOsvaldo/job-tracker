@@ -366,8 +366,8 @@ export class JobsService {
       case JobSortBy.LOCATION:
         qb.orderBy('job.location', dir, 'NULLS LAST');
         return;
-      case JobSortBy.SALARY:
-        qb.addSelect((subQuery) => {
+      case JobSortBy.SALARY: {
+        const buildSalarySubQuery = (subQuery: SelectQueryBuilder<Job>) => {
           const sub = subQuery
             .select('COALESCE(ja.salary_min, ja.salary_max)', 'best_salary')
             .from(JobAnalysis, 'ja')
@@ -384,12 +384,23 @@ export class JobsService {
           }
 
           return sub;
-        }, 'best_salary').orderBy(
-          'COALESCE(best_salary, job.salary_min, job.salary_max)',
+        };
+
+        qb.addSelect(buildSalarySubQuery, 'best_salary');
+
+        // Postgres only allows a SELECT-list alias to be used in ORDER BY
+        // as a bare identifier, not nested inside another expression like
+        // COALESCE(...). So the subquery SQL is inlined here directly
+        // instead of referencing the "best_salary" alias.
+        const orderSubQuery = buildSalarySubQuery(qb.subQuery());
+        qb.setParameters(orderSubQuery.getParameters());
+        qb.orderBy(
+          `COALESCE((${orderSubQuery.getQuery()}), job.salary_min, job.salary_max)`,
           dir,
           'NULLS LAST',
         );
         return;
+      }
       case JobSortBy.SCORE:
         qb.addSelect((subQuery) => {
           const sub = subQuery

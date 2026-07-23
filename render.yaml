@@ -15,7 +15,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: JWT_EXPIRES_IN
-        value: 15m
+        value: 2d
       - key: REFRESH_TOKEN_EXPIRES_DAYS
         value: '7'
       - key: SEED_SECRET

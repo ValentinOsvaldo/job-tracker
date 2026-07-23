@@ -140,6 +140,13 @@ export interface JobStatusResponse {
   rejected: boolean
 }
 
+export interface RegenerateAnalysesResult {
+  queued: number
+  scope: 'job' | 'profile'
+  job_id?: string
+  profile_id?: string
+}
+
 export interface SeedResult {
   created: string[]
   skipped: string[]

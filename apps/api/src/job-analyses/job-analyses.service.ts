@@ -198,6 +198,26 @@ export class JobAnalysesService {
     };
   }
 
+  async regenerateSummaryForJob(jobId: string): Promise<Job> {
+    const job = await this.jobsRepository.findOneBy({ id: jobId });
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    if (!job.description) {
+      throw new BadRequestException(
+        'Job has no description to summarize',
+      );
+    }
+
+    const summary = await this.jobSummarizer.summarize(job);
+    await this.jobsRepository.update(jobId, { description_summary: summary });
+
+    job.description_summary = summary;
+    return job;
+  }
+
   private async getUserEligibleProfiles(
     userId: string,
     profileId?: string,

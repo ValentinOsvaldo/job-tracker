@@ -178,6 +178,17 @@ export class JobsController {
     return this.jobAnalysesService.regenerateForJob(req.user.id, id, profileId);
   }
 
+  @Post(':id/summary/regenerate')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Regenerate the AI TLDR summary for a job' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: Job })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  regenerateSummary(@Param('id', ParseUUIDPipe) id: string) {
+    return this.jobAnalysesService.regenerateSummaryForJob(id);
+  }
+
   @Get(':id')
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get a job by ID' })

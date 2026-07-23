@@ -10,6 +10,7 @@ import type {
   ListJobsQuery,
   MarketTrendsResponse,
   PublicUser,
+  RegenerateAnalysesResult,
   ScrapeTriggerResult,
   SearchProfile,
   SeedResult,
@@ -120,6 +121,14 @@ export function useApiClient() {
     return requestFetch<{ ok: true }>(`/api/jobs/${jobId}`, { method: 'DELETE' })
   }
 
+  function regenerateJobSummary(jobId: string) {
+    return requestFetch<Job>(`/api/jobs/${jobId}/summary/regenerate`, { method: 'POST' })
+  }
+
+  function regenerateJobAnalyses(jobId: string) {
+    return requestFetch<RegenerateAnalysesResult>(`/api/jobs/${jobId}/analyses/regenerate`, { method: 'POST' })
+  }
+
   function runSeed() {
     return requestFetch<SeedResult>('/api/seed', {
       method: 'POST',
@@ -162,6 +171,8 @@ export function useApiClient() {
     triggerScrape,
     updateJobStatus,
     deleteJob,
+    regenerateJobSummary,
+    regenerateJobAnalyses,
     runSeed,
     createUser,
     updateUser,

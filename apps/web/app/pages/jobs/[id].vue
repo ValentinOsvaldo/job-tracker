@@ -7,12 +7,52 @@ definePageMeta({
 
 const route = useRoute()
 const api = useApiClient()
+const toast = useToast()
+const queryCache = useQueryCache()
 const id = computed(() => String(route.params.id))
 
 const { data: job, isPending, error, refetch } = useQuery({
   key: () => ['job', id.value],
   query: () => api.jobQuery(id.value).query()
 })
+
+const regenerating = ref(false)
+
+async function onRegenerate() {
+  regenerating.value = true
+
+  try {
+    const [summaryResult, analysesResult] = await Promise.allSettled([
+      api.regenerateJobSummary(id.value),
+      api.regenerateJobAnalyses(id.value)
+    ])
+
+    if (summaryResult.status === 'fulfilled' && job.value) {
+      job.value.description_summary = summaryResult.value.description_summary
+    }
+
+    if (summaryResult.status === 'rejected' && analysesResult.status === 'rejected') {
+      toast.add({
+        title: 'No se pudo regenerar',
+        description: 'Intenta de nuevo en unos segundos',
+        color: 'error'
+      })
+    } else {
+      const queued = analysesResult.status === 'fulfilled' ? analysesResult.value.queued : 0
+      toast.add({
+        title: 'Regeneración en curso',
+        description: queued > 0
+          ? `TLDR actualizado. ${queued} análisis en cola.`
+          : 'TLDR actualizado.',
+        color: 'success'
+      })
+    }
+
+    await queryCache.invalidateQueries({ key: ['job', id.value] })
+  } finally {
+    regenerating.value = false
+  }
+}
 
 const analyses = computed(() =>
   [...(job.value?.analyses ?? [])].sort((a, b) => b.fit_score - a.fit_score)
@@ -114,6 +154,16 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
             size="sm"
             @updated="onStatusUpdated"
           />
+          <UButton
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-sparkles"
+            :loading="regenerating"
+            :disabled="regenerating"
+            @click="onRegenerate"
+          >
+            Regenerar análisis y TLDR
+          </UButton>
           <span class="text-sm text-muted self-center">
             Salary:
             {{ formatSalary(job.salary_min, job.salary_max) }}

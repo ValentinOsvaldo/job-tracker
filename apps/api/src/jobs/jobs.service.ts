@@ -367,7 +367,28 @@ export class JobsService {
         qb.orderBy('job.location', dir, 'NULLS LAST');
         return;
       case JobSortBy.SALARY:
-        qb.orderBy('job.salary_min', dir, 'NULLS LAST');
+        qb.addSelect((subQuery) => {
+          const sub = subQuery
+            .select('COALESCE(ja.salary_min, ja.salary_max)', 'best_salary')
+            .from(JobAnalysis, 'ja')
+            .innerJoin(SearchProfile, 'sp', 'sp.id = ja.profile_id')
+            .where('ja.job_id = job.id')
+            .andWhere('sp.user_id = :salaryUserId', { salaryUserId: userId })
+            .orderBy('ja.fit_score', 'DESC')
+            .limit(1);
+
+          if (profileId) {
+            sub.andWhere('ja.profile_id = :salaryProfileId', {
+              salaryProfileId: profileId,
+            });
+          }
+
+          return sub;
+        }, 'best_salary').orderBy(
+          'COALESCE(best_salary, job.salary_min, job.salary_max)',
+          dir,
+          'NULLS LAST',
+        );
         return;
       case JobSortBy.SCORE:
         qb.addSelect((subQuery) => {

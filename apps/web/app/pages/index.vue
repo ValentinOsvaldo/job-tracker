@@ -40,17 +40,13 @@ async function loadTopJobs(list: SearchProfile[]) {
       list.map(async (profile) => {
         const response = await api.jobsQuery({
           profile_id: profile.id,
-          limit: 50,
+          sort_by: 'score',
+          sort_dir: 'desc',
+          limit: 5,
           page: 1
         }).query()
 
-        const sorted = [...response.data].sort((a, b) => {
-          const scoreA = a.analyses?.find(x => x.profile_id === profile.id)?.fit_score ?? 0
-          const scoreB = b.analyses?.find(x => x.profile_id === profile.id)?.fit_score ?? 0
-          return scoreB - scoreA
-        })
-
-        return [profile.id, sorted.slice(0, 5)] as const
+        return [profile.id, response.data] as const
       })
     )
 

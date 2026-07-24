@@ -6,6 +6,7 @@ export type SortDirection = 'asc' | 'desc'
 export type UserRole = 'admin' | 'user'
 export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown'
 export type WorkModeSource = 'heuristic' | 'ai'
+export type JobRelevance = 'unknown' | 'relevant' | 'irrelevant'
 
 export interface PublicUser {
   id: string
@@ -102,6 +103,8 @@ export interface Job {
   location_city: string | null
   location_region: string | null
   location_country: string | null
+  relevance: JobRelevance
+  relevance_reason: string | null
   description: string | null
   description_summary: string | null
   url: string
@@ -134,6 +137,7 @@ export interface ListJobsQuery {
   rejected?: boolean
   /** Comma-separated work modes, e.g. "remote,hybrid" */
   work_mode?: string
+  relevance?: JobRelevance
   location_country?: string
   location_city?: string
   sort_by?: JobSortBy
@@ -160,6 +164,15 @@ export interface RegenerateAnalysesResult {
   scope: 'job' | 'profile'
   job_id?: string
   profile_id?: string
+}
+
+export interface RelevanceScanResult {
+  queued: number
+}
+
+export interface BulkDeleteResult {
+  ok: boolean
+  deleted: number
 }
 
 export interface SeedResult {

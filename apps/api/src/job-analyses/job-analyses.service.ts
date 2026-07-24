@@ -11,12 +11,15 @@ import { In, Repository } from 'typeorm';
 import {
   AI_JOB_ANALYZER,
   AI_JOB_SUMMARIZER,
+  AI_RELEVANCE_CLASSIFIER,
   AI_WORK_MODE_CLASSIFIER,
 } from '../ai/ai.constants';
 import { JobAnalyzer } from '../ai/interfaces/job-analyzer.interface';
 import { JobSummarizer } from '../ai/interfaces/job-summarizer.interface';
+import { RelevanceClassifier } from '../ai/interfaces/relevance-classifier.interface';
 import { WorkModeClassifier } from '../ai/interfaces/work-mode-classifier.interface';
 import { Job } from '../jobs/entities/job.entity';
+import { JobRelevance } from '../jobs/enums/job-relevance.enum';
 import { WorkMode } from '../jobs/enums/work-mode.enum';
 import { WorkModeSource } from '../jobs/enums/work-mode-source.enum';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
@@ -52,6 +55,8 @@ export class JobAnalysesService {
     private readonly jobSummarizer: JobSummarizer,
     @Inject(AI_WORK_MODE_CLASSIFIER)
     private readonly workModeClassifier: WorkModeClassifier,
+    @Inject(AI_RELEVANCE_CLASSIFIER)
+    private readonly relevanceClassifier: RelevanceClassifier,
     private readonly configService: ConfigService,
   ) {}
 
@@ -214,6 +219,90 @@ export class JobAnalysesService {
     }
   }
 
+  /** Fire-and-forget on-demand scan: classifies every job whose relevance
+   * hasn't been checked yet against the roles/keywords of active search
+   * profiles, so off-topic scraped jobs (wrong occupation entirely) can be
+   * filtered out and bulk-deleted from the jobs list. Returns immediately
+   * with how many jobs were queued; classification runs in the background. */
+  async scanRelevance(): Promise<{ queued: number }> {
+    const profiles = await this.profilesRepository.find({
+      where: { is_active: true },
+    });
+
+    if (profiles.length === 0) {
+      return { queued: 0 };
+    }
+
+    const targetRoles = this.buildTargetRolesDescription(profiles);
+
+    const jobs = await this.jobsRepository.find({
+      where: { relevance: JobRelevance.UNKNOWN },
+    });
+
+    void this.runRelevanceBatch(jobs, targetRoles).catch((error: unknown) => {
+      this.logger.error('Failed to scan job relevance', error);
+    });
+
+    return { queued: jobs.length };
+  }
+
+  private buildTargetRolesDescription(profiles: SearchProfile[]): string {
+    return profiles
+      .map((profile) => {
+        const keywords =
+          profile.keywords.length > 0 ? profile.keywords.join(', ') : 'N/A';
+        return `- ${profile.role}: ${keywords}`;
+      })
+      .join('\n');
+  }
+
+  private async runRelevanceBatch(
+    jobs: Job[],
+    targetRoles: string,
+  ): Promise<void> {
+    if (jobs.length === 0) {
+      return;
+    }
+
+    const batchSize = Number(this.configService.get('AI_BATCH_SIZE') ?? 5);
+    const batchDelayMs = Number(
+      this.configService.get('AI_BATCH_DELAY_MS') ?? 200,
+    );
+
+    for (let index = 0; index < jobs.length; index += batchSize) {
+      const chunk = jobs.slice(index, index + batchSize);
+
+      await Promise.allSettled(
+        chunk.map((job) => this.classifyAndSaveRelevance(job, targetRoles)),
+      );
+
+      if (index + batchSize < jobs.length) {
+        await this.sleep(batchDelayMs);
+      }
+    }
+  }
+
+  private async classifyAndSaveRelevance(
+    job: Job,
+    targetRoles: string,
+  ): Promise<void> {
+    try {
+      const result = await this.relevanceClassifier.classify(job, targetRoles);
+
+      await this.jobsRepository.update(job.id, {
+        relevance: result.relevant
+          ? JobRelevance.RELEVANT
+          : JobRelevance.IRRELEVANT,
+        relevance_reason: result.reason,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Relevance classification failed for job ${job.id}`,
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
   queueAnalysesForProfile(profileId: string): void {
     void this.buildTasksForProfile(profileId)
       .then((tasks) => this.runBatch(tasks))
@@ -306,9 +395,7 @@ export class JobAnalysesService {
     }
 
     if (!job.description) {
-      throw new BadRequestException(
-        'Job has no description to summarize',
-      );
+      throw new BadRequestException('Job has no description to summarize');
     }
 
     const summary = await this.jobSummarizer.summarize(job);

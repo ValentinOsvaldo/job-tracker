@@ -18,6 +18,7 @@ import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { JobSource } from './enums/job-source.enum';
+import { JobRelevance } from './enums/job-relevance.enum';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
@@ -194,6 +195,15 @@ export class JobsService {
     this.logger.log(`Deleted job: id=${id}`);
   }
 
+  async removeMany(ids: string[]): Promise<{ deleted: number }> {
+    const result = await this.jobsRepository.delete({ id: In(ids) });
+
+    const deleted = result.affected ?? 0;
+    this.logger.log(`Bulk deleted jobs: count=${deleted}`);
+
+    return { deleted };
+  }
+
   async findAll(userId: string, query: JobsListQuery): Promise<PaginatedJobs> {
     const {
       page,
@@ -205,6 +215,7 @@ export class JobsService {
       applied,
       rejected,
       workMode,
+      relevance,
       locationCountry,
       locationCity,
       sortBy,
@@ -223,6 +234,7 @@ export class JobsService {
       applied,
       rejected,
       workMode,
+      relevance,
       locationCountry,
       locationCity,
     });
@@ -347,6 +359,7 @@ export class JobsService {
       applied?: boolean;
       rejected?: boolean;
       workMode?: WorkMode[];
+      relevance?: JobRelevance;
       locationCountry?: string;
       locationCity?: string;
     },
@@ -360,6 +373,12 @@ export class JobsService {
     if (filters.workMode && filters.workMode.length > 0) {
       qb.andWhere('job.work_mode IN (:...workMode)', {
         workMode: filters.workMode,
+      });
+    }
+
+    if (filters.relevance) {
+      qb.andWhere('job.relevance = :relevance', {
+        relevance: filters.relevance,
       });
     }
 

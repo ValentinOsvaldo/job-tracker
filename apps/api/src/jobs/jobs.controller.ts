@@ -30,12 +30,15 @@ import { Public } from '../auth/decorators/public.decorator';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { PublicUser } from '../users/types/public-user.type';
 import { UserRole } from '../users/enums/user-role.enum';
+import { BulkDeleteJobsDto } from './dto/bulk-delete-jobs.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import {
+  BulkDeleteJobsResultDto,
   DeleteAllJobsResultDto,
   IngestResultDto,
   PaginatedJobsResponseDto,
+  RelevanceScanResultDto,
   WorkModeBackfillResultDto,
 } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
@@ -109,6 +112,7 @@ export class JobsController {
       applied: query.applied,
       rejected: query.rejected,
       workMode: query.work_mode,
+      relevance: query.relevance,
       locationCountry: query.location_country,
       locationCity: query.location_city,
       sortBy: query.sort_by,
@@ -129,6 +133,21 @@ export class JobsController {
   @ApiResponse({ status: 403, description: 'Admin role required' })
   async removeAll() {
     const { deleted } = await this.jobsService.removeAll();
+    return { ok: true, deleted };
+  }
+
+  @Post('bulk-delete')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Delete multiple jobs and their analyses (admin only)',
+  })
+  @ApiBody({ type: BulkDeleteJobsDto })
+  @ApiResponse({ status: 200, type: BulkDeleteJobsResultDto })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  async bulkDelete(@Body() body: BulkDeleteJobsDto) {
+    const { deleted } = await this.jobsService.removeMany(body.ids);
     return { ok: true, deleted };
   }
 
@@ -218,6 +237,22 @@ export class JobsController {
   @ApiResponse({ status: 403, description: 'Admin role required' })
   backfillWorkModes() {
     return this.jobAnalysesService.backfillWorkModes();
+  }
+
+  @Post('relevance/scan')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary:
+      'Queue AI relevance classification for all jobs not yet checked (admin only)',
+    description:
+      'Classifies each unchecked job as related or unrelated to the roles/keywords of active search profiles, so off-topic scraped jobs can be filtered and bulk-deleted.',
+  })
+  @ApiResponse({ status: 200, type: RelevanceScanResultDto })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  scanRelevance() {
+    return this.jobAnalysesService.scanRelevance();
   }
 
   @Get(':id')

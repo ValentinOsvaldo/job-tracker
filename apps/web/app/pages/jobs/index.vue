@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InterestStatus, Job, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
+import type { InterestStatus, Job, JobRelevance, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -15,13 +15,18 @@ const router = useRouter()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
+const UCheckbox = resolveComponent('UCheckbox')
 const UTooltip = resolveComponent('UTooltip')
 const ScoreBadge = resolveComponent('ScoreBadge')
 const JobStatusControls = resolveComponent('JobStatusControls')
 
 const scraping = ref(false)
+const scanningRelevance = ref(false)
+const bulkDeleting = ref(false)
+const rowSelection = ref<Record<string, boolean>>({})
 
 type StatusFilter = 'all' | 'liked' | 'disliked' | 'applied' | 'rejected'
+type RelevanceFilter = 'all' | JobRelevance
 
 type Filters = {
   source: JobSource | 'all'
@@ -29,6 +34,7 @@ type Filters = {
   status: StatusFilter
   min_score: number | undefined
   work_mode: WorkMode[]
+  relevance: RelevanceFilter
   location_city: string
   sort_by: JobSortBy | undefined
   sort_dir: SortDirection
@@ -60,6 +66,7 @@ function filtersFromQuery(query: Record<string, unknown>): Filters {
     status: (readQueryString(query.status) as StatusFilter | undefined) ?? 'all',
     min_score: readQueryNumber(query.min_score),
     work_mode: readQueryArray(query.work_mode) as WorkMode[],
+    relevance: (readQueryString(query.relevance) as RelevanceFilter | undefined) ?? 'all',
     location_city: readQueryString(query.location_city) ?? '',
     sort_by: readQueryString(query.sort_by) as JobSortBy | undefined,
     sort_dir: (readQueryString(query.sort_dir) as SortDirection | undefined) ?? 'asc',
@@ -75,6 +82,7 @@ function queryFromFilters(source: Filters): Record<string, string> {
   if (source.status !== 'all') query.status = source.status
   if (source.min_score !== undefined) query.min_score = String(source.min_score)
   if (source.work_mode.length > 0) query.work_mode = source.work_mode.join(',')
+  if (source.relevance !== 'all') query.relevance = source.relevance
   if (source.location_city) query.location_city = source.location_city
   if (source.sort_by) {
     query.sort_by = source.sort_by
@@ -101,6 +109,7 @@ const queryFilters = computed<ListJobsQuery>(() => ({
     ? filters.min_score
     : undefined,
   work_mode: filters.work_mode.length > 0 ? filters.work_mode.join(',') : undefined,
+  relevance: filters.relevance === 'all' ? undefined : filters.relevance,
   location_city: filters.location_city || undefined,
   sort_by: filters.sort_by,
   sort_dir: filters.sort_by ? filters.sort_dir : undefined,
@@ -116,6 +125,10 @@ const { data: profiles } = useQuery({
 const { data: jobsResponse, isPending, error, refetch } = useQuery({
   key: () => ['jobs', { ...queryFilters.value }],
   query: () => api.jobsQuery(queryFilters.value).query()
+})
+
+watch(queryFilters, () => {
+  rowSelection.value = {}
 })
 
 const sourceItems = [
@@ -154,6 +167,19 @@ const WORK_MODE_COLORS: Record<WorkMode, 'success' | 'warning' | 'neutral'> = {
   unknown: 'neutral'
 }
 
+const relevanceItems: { label: string, value: RelevanceFilter }[] = [
+  { label: 'All', value: 'all' },
+  { label: 'Not checked', value: 'unknown' },
+  { label: 'Related', value: 'relevant' },
+  { label: 'Not related', value: 'irrelevant' }
+]
+
+const RELEVANCE_BADGE: Record<JobRelevance, { label: string, color: 'neutral' | 'success' | 'error' }> = {
+  unknown: { label: 'Not checked', color: 'neutral' },
+  relevant: { label: 'Related', color: 'success' },
+  irrelevant: { label: 'Not related', color: 'error' }
+}
+
 const totalPages = computed(() => {
   const total = jobsResponse.value?.total ?? 0
   const limit = jobsResponse.value?.limit ?? filters.limit
@@ -167,6 +193,7 @@ watch(
     filters.status,
     filters.min_score,
     filters.work_mode,
+    filters.relevance,
     filters.location_city,
     filters.limit,
     filters.sort_by,
@@ -255,7 +282,89 @@ async function onDelete(job: { id: string, title: string }) {
   }
 }
 
-const columns = [
+const selectedIds = computed(() => Object.keys(rowSelection.value).filter(id => rowSelection.value[id]))
+
+function onSelectAllIrrelevant() {
+  const next: Record<string, boolean> = {}
+  for (const job of jobsResponse.value?.data ?? []) {
+    if (job.relevance === 'irrelevant') next[job.id] = true
+  }
+  rowSelection.value = next
+}
+
+async function onBulkDelete() {
+  const ids = selectedIds.value
+  if (ids.length === 0) return
+  if (!confirm(`Delete ${ids.length} job(s)? This can't be undone.`)) return
+
+  bulkDeleting.value = true
+  try {
+    const result = await api.bulkDeleteJobs(ids)
+    toast.add({ title: `Deleted ${result.deleted} job(s)`, color: 'success' })
+    rowSelection.value = {}
+    await queryCache.invalidateQueries({ key: ['jobs'] })
+    await refetch()
+  } catch (err: unknown) {
+    toast.add({
+      title: 'Could not delete selected jobs',
+      description: (err as { statusMessage?: string })?.statusMessage || 'Try again',
+      color: 'error'
+    })
+  } finally {
+    bulkDeleting.value = false
+  }
+}
+
+async function onScanRelevance() {
+  scanningRelevance.value = true
+  try {
+    const result = await api.scanRelevance()
+    toast.add({
+      title: result.queued > 0 ? `Revisando ${result.queued} oferta(s)` : 'Nada que revisar',
+      description: result.queued > 0 ? 'Esto corre en segundo plano, la tabla se actualizará sola en unos segundos.' : undefined,
+      color: 'success'
+    })
+    if (result.queued > 0) {
+      setTimeout(() => {
+        void queryCache.invalidateQueries({ key: ['jobs'] })
+        void refetch()
+      }, 8000)
+    }
+  } catch (err: unknown) {
+    toast.add({
+      title: 'No se pudo iniciar la revisión',
+      description: (err as { statusMessage?: string })?.statusMessage || 'Try again',
+      color: 'error'
+    })
+  } finally {
+    scanningRelevance.value = false
+  }
+}
+
+const selectColumn = {
+  id: 'select',
+  header: ({ table }: { table: {
+    getIsAllPageRowsSelected: () => boolean
+    getIsSomePageRowsSelected: () => boolean
+    toggleAllPageRowsSelected: (value: boolean) => void
+  } }) =>
+    h(UCheckbox, {
+      'modelValue': table.getIsSomePageRowsSelected() && !table.getIsAllPageRowsSelected() ? 'indeterminate' : table.getIsAllPageRowsSelected(),
+      'onUpdate:modelValue': (value: boolean | 'indeterminate') => table.toggleAllPageRowsSelected(!!value),
+      'aria-label': 'Select all'
+    }),
+  cell: ({ row }: { row: {
+    getIsSelected: () => boolean
+    toggleSelected: (value: boolean) => void
+  } }) =>
+    h(UCheckbox, {
+      'modelValue': row.getIsSelected(),
+      'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+      'aria-label': 'Select row'
+    })
+}
+
+const baseColumns = [
   {
     accessorKey: 'title',
     header: 'Title',
@@ -287,6 +396,18 @@ const columns = [
         size: 'sm',
         class: 'capitalize'
       }, () => row.original.work_mode)
+  },
+  {
+    id: 'relevance',
+    header: 'Relevance',
+    cell: ({ row }: { row: { original: { relevance: JobRelevance, relevance_reason: string | null } } }) => {
+      if (row.original.relevance === 'relevant') return null
+      const badge = RELEVANCE_BADGE[row.original.relevance]
+      const content = h(UBadge, { color: badge.color, variant: 'subtle', size: 'sm' }, () => badge.label)
+      return row.original.relevance_reason
+        ? h(UTooltip, { text: row.original.relevance_reason }, () => content)
+        : content
+    }
   },
   {
     id: 'score',
@@ -360,6 +481,8 @@ const columns = [
   }
 ]
 
+const columns = computed(() => (auth.isAdmin ? [selectColumn, ...baseColumns] : baseColumns))
+
 async function onScrape() {
   scraping.value = true
   try {
@@ -396,13 +519,25 @@ async function onScrape() {
           Filter and browse analyzed opportunities
         </p>
       </div>
-      <UButton
-        icon="i-lucide-refresh-cw"
-        :loading="scraping"
-        @click="onScrape"
-      >
-        Actualizar ofertas
-      </UButton>
+      <div class="flex items-center gap-2">
+        <UButton
+          v-if="auth.isAdmin"
+          icon="i-lucide-sparkles"
+          color="neutral"
+          variant="subtle"
+          :loading="scanningRelevance"
+          @click="onScanRelevance"
+        >
+          Revisar relevancia
+        </UButton>
+        <UButton
+          icon="i-lucide-refresh-cw"
+          :loading="scraping"
+          @click="onScrape"
+        >
+          Actualizar ofertas
+        </UButton>
+      </div>
     </div>
 
     <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -437,6 +572,14 @@ async function onScrape() {
           value-key="value"
           multiple
           placeholder="All modes"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Relevance">
+        <USelect
+          v-model="filters.relevance"
+          :items="relevanceItems"
           class="w-full"
         />
       </UFormField>
@@ -481,11 +624,48 @@ async function onScrape() {
       :actions="[{ label: 'Retry', onClick: () => { void refetch() } }]"
     />
 
+    <div
+      v-if="auth.isAdmin && selectedIds.length > 0"
+      class="flex flex-wrap items-center gap-3 rounded-lg border border-default bg-elevated/50 px-3 py-2"
+    >
+      <p class="text-sm text-muted">
+        {{ selectedIds.length }} selected
+      </p>
+      <UButton
+        color="neutral"
+        variant="subtle"
+        size="xs"
+        @click="onSelectAllIrrelevant"
+      >
+        Seleccionar no relacionados
+      </UButton>
+      <UButton
+        color="error"
+        variant="solid"
+        size="xs"
+        icon="i-lucide-trash-2"
+        :loading="bulkDeleting"
+        @click="onBulkDelete"
+      >
+        Eliminar seleccionados
+      </UButton>
+      <UButton
+        color="neutral"
+        variant="ghost"
+        size="xs"
+        @click="rowSelection = {}"
+      >
+        Clear
+      </UButton>
+    </div>
+
     <UCard :ui="{ body: 'p-0 sm:p-0' }">
       <UTable
+        v-model:row-selection="rowSelection"
         :data="jobsResponse?.data ?? []"
         :columns="columns"
         :loading="isPending"
+        :get-row-id="(row: Job) => row.id"
         class="w-full"
       />
     </UCard>

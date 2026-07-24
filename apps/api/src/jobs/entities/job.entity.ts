@@ -9,6 +9,7 @@ import {
 import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
+import { JobRelevance } from '../enums/job-relevance.enum';
 import { WorkMode } from '../enums/work-mode.enum';
 import { WorkModeSource } from '../enums/work-mode-source.enum';
 
@@ -96,6 +97,26 @@ export class Job {
   @ApiPropertyOptional({ nullable: true, example: 'yearly' })
   @Column({ type: 'varchar', length: 20, nullable: true })
   salary_interval: string | null;
+
+  @ApiProperty({
+    enum: JobRelevance,
+    example: JobRelevance.RELEVANT,
+    description:
+      'Whether this posting matches the kind of roles being searched for (AI-classified, on demand)',
+  })
+  @Column({
+    type: 'enum',
+    enum: JobRelevance,
+    default: JobRelevance.UNKNOWN,
+  })
+  relevance: JobRelevance;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Short AI-written reason for the relevance classification',
+  })
+  @Column({ type: 'text', nullable: true })
+  relevance_reason: string | null;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })

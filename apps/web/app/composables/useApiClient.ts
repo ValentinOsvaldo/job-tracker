@@ -1,4 +1,5 @@
 import type {
+  BulkDeleteResult,
   ChangePasswordInput,
   CreateProfileInput,
   CreateUserInput,
@@ -11,6 +12,7 @@ import type {
   MarketTrendsResponse,
   PublicUser,
   RegenerateAnalysesResult,
+  RelevanceScanResult,
   ScrapeTriggerResult,
   SearchProfile,
   SeedResult,
@@ -121,6 +123,17 @@ export function useApiClient() {
     return requestFetch<{ ok: true }>(`/api/jobs/${jobId}`, { method: 'DELETE' })
   }
 
+  function bulkDeleteJobs(ids: string[]) {
+    return requestFetch<BulkDeleteResult>('/api/jobs/bulk-delete', {
+      method: 'POST',
+      body: { ids }
+    })
+  }
+
+  function scanRelevance() {
+    return requestFetch<RelevanceScanResult>('/api/jobs/relevance/scan', { method: 'POST' })
+  }
+
   function regenerateJobSummary(jobId: string) {
     return requestFetch<Job>(`/api/jobs/${jobId}/summary/regenerate`, { method: 'POST' })
   }
@@ -171,6 +184,8 @@ export function useApiClient() {
     triggerScrape,
     updateJobStatus,
     deleteJob,
+    bulkDeleteJobs,
+    scanRelevance,
     regenerateJobSummary,
     regenerateJobAnalyses,
     runSeed,

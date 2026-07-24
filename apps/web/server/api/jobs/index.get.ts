@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
       applied: query.applied !== undefined ? query.applied === 'true' : undefined,
       rejected: query.rejected !== undefined ? query.rejected === 'true' : undefined,
       work_mode: query.work_mode as string | undefined,
+      relevance: query.relevance as string | undefined,
       location_city: query.location_city as string | undefined,
       location_country: query.location_country as string | undefined,
       sort_by: query.sort_by as string | undefined,

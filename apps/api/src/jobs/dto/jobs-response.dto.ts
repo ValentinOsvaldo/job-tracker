@@ -31,6 +31,22 @@ export class WorkModeBackfillResultDto {
   queued: number;
 }
 
+export class RelevanceScanResultDto {
+  @ApiProperty({
+    example: 42,
+    description: 'Jobs with relevance=unknown queued for AI classification',
+  })
+  queued: number;
+}
+
+export class BulkDeleteJobsResultDto {
+  @ApiProperty({ example: true })
+  ok: boolean;
+
+  @ApiProperty({ example: 5, description: 'Number of jobs deleted' })
+  deleted: number;
+}
+
 export class PaginatedJobsResponseDto {
   @ApiProperty({ type: [Job] })
   data: Job[];

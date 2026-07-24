@@ -1,5 +1,6 @@
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
+import { JobRelevance } from '../enums/job-relevance.enum';
 import { JobSortBy } from '../enums/job-sort-by.enum';
 import { SortDirection } from '../enums/sort-direction.enum';
 import { WorkMode } from '../enums/work-mode.enum';
@@ -12,6 +13,7 @@ export interface JobsListQuery {
   applied?: boolean;
   rejected?: boolean;
   workMode?: WorkMode[];
+  relevance?: JobRelevance;
   locationCountry?: string;
   locationCity?: string;
   sortBy?: JobSortBy;

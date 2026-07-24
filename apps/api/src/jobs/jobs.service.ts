@@ -2,6 +2,8 @@ import {
   BadRequestException,
   BadGatewayException,
   GatewayTimeoutException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -10,7 +12,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { In, Repository, SelectQueryBuilder } from 'typeorm';
+import { In, MoreThan, Repository, SelectQueryBuilder } from 'typeorm';
 import { JobAnalysis } from '../job-analyses/entities/job-analysis.entity';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
@@ -29,6 +31,18 @@ import { JobsListQuery } from './types/jobs-list-query.type';
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
+
+/** Normalized dedup key: same title + company should be treated as the same
+ * job posting even when re-scraped under a different URL (tracking params,
+ * a repost, or the same listing mirrored on another site). */
+function jobDedupeKey(title: string, company: string | null): string {
+  const norm = (value: string | null | undefined) =>
+    (value ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  return `${norm(title)}|${norm(company)}`;
+}
+
+const MIN_HOURS_BETWEEN_SCRAPES = 24;
+const DEDUPE_LOOKBACK_DAYS = 30;
 
 @Injectable()
 export class JobsService {
@@ -90,7 +104,36 @@ export class JobsService {
           ).map((job) => job.url),
     );
 
-    const newJobs = jobs.filter((job) => job.url && !existingUrls.has(job.url));
+    const recentJobs = await this.jobsRepository.find({
+      where: {
+        scraped_at: MoreThan(
+          new Date(Date.now() - DEDUPE_LOOKBACK_DAYS * 24 * 60 * 60 * 1000),
+        ),
+      },
+      select: { title: true, company: true },
+    });
+    const existingContentKeys = new Set(
+      recentJobs.map((job) => jobDedupeKey(job.title, job.company)),
+    );
+
+    const seenContentKeysInBatch = new Set<string>();
+    const newJobs = jobs.filter((job) => {
+      if (!job.url || existingUrls.has(job.url)) {
+        return false;
+      }
+
+      const contentKey = jobDedupeKey(job.title as string, job.company ?? null);
+
+      if (
+        existingContentKeys.has(contentKey) ||
+        seenContentKeysInBatch.has(contentKey)
+      ) {
+        return false;
+      }
+
+      seenContentKeysInBatch.add(contentKey);
+      return true;
+    });
 
     if (newJobs.length > 0) {
       await this.jobsRepository.upsert(newJobs, {
@@ -493,6 +536,8 @@ export class JobsService {
   }
 
   async triggerScrape(userId: string): Promise<ScrapeTriggerResultDto> {
+    await this.assertScrapeNotThrottled();
+
     const scraperBaseUrl = (
       process.env.SCRAPER_URL || 'http://localhost:8000'
     ).replace(/\/$/, '');
@@ -551,6 +596,36 @@ export class JobsService {
       );
     } finally {
       clearTimeout(timeout);
+    }
+  }
+
+  /** Blocks manual scrape triggers within MIN_HOURS_BETWEEN_SCRAPES of the
+   * last one, regardless of which user requests it — the scraper hits
+   * external sites, so the limit is global, not per-user. */
+  private async assertScrapeNotThrottled(): Promise<void> {
+    const [lastJob] = await this.jobsRepository.find({
+      order: { scraped_at: 'DESC' },
+      take: 1,
+      select: { scraped_at: true },
+    });
+
+    if (!lastJob) {
+      return;
+    }
+
+    const hoursSinceLastScrape =
+      (Date.now() - lastJob.scraped_at.getTime()) / (1000 * 60 * 60);
+
+    if (hoursSinceLastScrape < MIN_HOURS_BETWEEN_SCRAPES) {
+      const nextAvailable = new Date(
+        lastJob.scraped_at.getTime() +
+          MIN_HOURS_BETWEEN_SCRAPES * 60 * 60 * 1000,
+      );
+      throw new HttpException(
+        `Ya se hizo scraping en las últimas ${MIN_HOURS_BETWEEN_SCRAPES}h. ` +
+          `Próximo disponible: ${nextAvailable.toISOString()}`,
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
   }
 

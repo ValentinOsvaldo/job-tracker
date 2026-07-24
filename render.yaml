@@ -57,7 +57,7 @@ services:
       - key: HOURS_OLD
         value: '48'
       - key: SCRAPE_INTERVAL_HOURS
-        value: '6'
+        value: '24'
       - key: LINKEDIN_FETCH_DESCRIPTION
         value: 'true'
       - key: ENFORCE_ANNUAL_SALARY

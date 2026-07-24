@@ -364,15 +364,21 @@ export class JobsService {
     }
 
     if (filters.locationCountry) {
-      qb.andWhere('job.location_country ILIKE :locationCountry', {
-        locationCountry: `%${filters.locationCountry}%`,
-      });
+      // location_country is only populated once AI classification has run
+      // (see job-analyses.service.ts), which is skipped for jobs whose work
+      // mode was already resolved by heuristics. Fall back to the raw
+      // location text so filtering still works for those jobs.
+      qb.andWhere(
+        '(job.location_country ILIKE :locationCountry OR job.location ILIKE :locationCountry)',
+        { locationCountry: `%${filters.locationCountry}%` },
+      );
     }
 
     if (filters.locationCity) {
-      qb.andWhere('job.location_city ILIKE :locationCity', {
-        locationCity: `%${filters.locationCity}%`,
-      });
+      qb.andWhere(
+        '(job.location_city ILIKE :locationCity OR job.location ILIKE :locationCity)',
+        { locationCity: `%${filters.locationCity}%` },
+      );
     }
 
     if (

@@ -20,4 +20,16 @@ export class UpdateSelfDto {
   @IsEmail()
   @MaxLength(150)
   email?: string;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Guadalajara', maxLength: 150 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  home_city?: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Mexico', maxLength: 150 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  home_country?: string | null;
 }

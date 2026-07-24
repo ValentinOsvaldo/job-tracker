@@ -4,6 +4,8 @@ export type InterestStatus = 'liked' | 'disliked'
 export type JobSortBy = 'salary' | 'score' | 'location'
 export type SortDirection = 'asc' | 'desc'
 export type UserRole = 'admin' | 'user'
+export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown'
+export type WorkModeSource = 'heuristic' | 'ai'
 
 export interface PublicUser {
   id: string
@@ -13,6 +15,8 @@ export interface PublicUser {
   cv_text: string | null
   cv_filename: string | null
   cv_uploaded_at: string | null
+  home_city: string | null
+  home_country: string | null
   created_at: string
 }
 
@@ -33,6 +37,8 @@ export interface UpdateUserInput {
 export interface UpdateSelfInput {
   name?: string
   email?: string
+  home_city?: string | null
+  home_country?: string | null
 }
 
 export interface ChangePasswordInput {
@@ -91,6 +97,11 @@ export interface Job {
   title: string
   company: string | null
   location: string | null
+  work_mode: WorkMode
+  work_mode_source: WorkModeSource | null
+  location_city: string | null
+  location_region: string | null
+  location_country: string | null
   description: string | null
   description_summary: string | null
   url: string
@@ -121,6 +132,10 @@ export interface ListJobsQuery {
   interest?: InterestStatus
   applied?: boolean
   rejected?: boolean
+  /** Comma-separated work modes, e.g. "remote,hybrid" */
+  work_mode?: string
+  location_country?: string
+  location_city?: string
   sort_by?: JobSortBy
   sort_dir?: SortDirection
   page?: number

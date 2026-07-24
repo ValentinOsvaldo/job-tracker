@@ -59,6 +59,8 @@ export async function setAuthSession(event: AuthEvent, login: LoginResponse) {
     cv_uploaded_at: login.user.cv_uploaded_at
       ? String(login.user.cv_uploaded_at)
       : null,
+    home_city: login.user.home_city,
+    home_country: login.user.home_country,
     created_at: String(login.user.created_at)
   }
 

@@ -48,6 +48,14 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   cv_uploaded_at: Date | null;
 
+  @ApiPropertyOptional({ nullable: true, example: 'Guadalajara' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  home_city: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Mexico' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  home_country: string | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;

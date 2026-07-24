@@ -22,15 +22,25 @@ function errorMessage(err: unknown, fallback: string) {
 }
 
 // --- My account ---
-const accountState = reactive({ name: '', email: '' })
+// The session cookie (auth.user) only carries minimal identity fields to
+// stay under the cookie size limit — home_city/home_country live on the
+// full profile, fetched separately via /api/auth/me.
+const { data: me, refetch: refetchMe } = useQuery({
+  key: ['me'],
+  query: () => api.meQuery.query()
+})
+
+const accountState = reactive({ name: '', email: '', home_city: '', home_country: '' })
 const savingAccount = ref(false)
 
 watch(
-  () => auth.user,
+  me,
   (user) => {
     if (!user) return
     accountState.name = user.name
     accountState.email = user.email
+    accountState.home_city = user.home_city ?? ''
+    accountState.home_country = user.home_country ?? ''
   },
   { immediate: true }
 )
@@ -40,9 +50,12 @@ async function onSaveAccount() {
   try {
     await api.updateMe({
       name: accountState.name.trim(),
-      email: accountState.email.trim()
+      email: accountState.email.trim(),
+      home_city: accountState.home_city.trim() || null,
+      home_country: accountState.home_country.trim() || null
     })
     await auth.refreshUser()
+    await refetchMe()
     toast.add({ title: 'Account updated', color: 'success' })
   } catch (err: unknown) {
     toast.add({
@@ -251,6 +264,29 @@ const columns = [
             <UInput
               v-model="accountState.email"
               type="email"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField
+            label="City"
+            name="home_city"
+            hint="Used as a fallback location when scraping if your search profiles don't set their own"
+          >
+            <UInput
+              v-model="accountState.home_city"
+              placeholder="e.g. Guadalajara"
+              class="w-full"
+            />
+          </UFormField>
+
+          <UFormField
+            label="Country"
+            name="home_country"
+          >
+            <UInput
+              v-model="accountState.home_country"
+              placeholder="e.g. Mexico"
               class="w-full"
             />
           </UFormField>

@@ -9,6 +9,8 @@ import {
 import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
+import { WorkMode } from '../enums/work-mode.enum';
+import { WorkModeSource } from '../enums/work-mode-source.enum';
 
 @Entity('jobs')
 export class Job {
@@ -27,6 +29,34 @@ export class Job {
   @ApiPropertyOptional({ nullable: true, example: 'Remote' })
   @Column({ type: 'varchar', length: 255, nullable: true })
   location: string | null;
+
+  @ApiProperty({ enum: WorkMode, example: WorkMode.REMOTE })
+  @Column({
+    type: 'enum',
+    enum: WorkMode,
+    default: WorkMode.UNKNOWN,
+  })
+  work_mode: WorkMode;
+
+  @ApiPropertyOptional({
+    enum: WorkModeSource,
+    nullable: true,
+    description: 'How work_mode was determined',
+  })
+  @Column({ type: 'enum', enum: WorkModeSource, nullable: true })
+  work_mode_source: WorkModeSource | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Ciudad de México' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  location_city: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'CDMX' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  location_region: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Mexico' })
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  location_country: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   @Column({ type: 'text', nullable: true })

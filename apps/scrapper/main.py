@@ -20,6 +20,7 @@ from config import (
     SEARCH_TERMS,
 )
 from filters import is_relevant_job
+from work_mode import classify_work_mode
 
 SiteName = Literal["linkedin", "indeed"]
 DEFAULT_SITES: list[SiteName] = ["linkedin", "indeed"]
@@ -203,6 +204,14 @@ def records_for_json(
         ):
             stats["blocked"] += 1
             continue
+
+        is_remote_value = to_json_value(record.get("is_remote"))
+        payload["work_mode"] = classify_work_mode(
+            payload.get("title"),
+            payload.get("location"),
+            payload.get("description"),
+            bool(is_remote_value) if is_remote_value is not None else None,
+        )
 
         stats["kept"] += 1
         serialized.append(payload)

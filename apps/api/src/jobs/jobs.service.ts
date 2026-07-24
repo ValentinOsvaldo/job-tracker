@@ -16,6 +16,7 @@ import { In, MoreThan, Repository, SelectQueryBuilder } from 'typeorm';
 import { JobAnalysis } from '../job-analyses/entities/job-analysis.entity';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
+import { User } from '../users/entities/user.entity';
 import { JobSource } from './enums/job-source.enum';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
@@ -25,8 +26,11 @@ import { JobUserStatus } from './entities/job-user-status.entity';
 import { InterestStatus } from './enums/interest-status.enum';
 import { JobSortBy } from './enums/job-sort-by.enum';
 import { SortDirection } from './enums/sort-direction.enum';
+import { WorkMode } from './enums/work-mode.enum';
+import { WorkModeSource } from './enums/work-mode-source.enum';
 import { UpdateJobStatusDto } from './dto/update-job-status.dto';
 import { JobsListQuery } from './types/jobs-list-query.type';
+import { classifyWorkMode } from './utils/work-mode-heuristics';
 
 function uniqueStrings(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
@@ -53,6 +57,8 @@ export class JobsService {
     private readonly jobsRepository: Repository<Job>,
     @InjectRepository(SearchProfile)
     private readonly profilesRepository: Repository<SearchProfile>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
     @InjectRepository(JobUserStatus)
     private readonly jobUserStatusRepository: Repository<JobUserStatus>,
     private readonly jobAnalysesService: JobAnalysesService,
@@ -149,6 +155,7 @@ export class JobsService {
       const insertedJobIds = insertedJobs.map((job) => job.id);
       this.jobAnalysesService.queueAnalysesForJobs(insertedJobIds);
       this.jobAnalysesService.queueDescriptionSummaries(insertedJobIds);
+      this.jobAnalysesService.queueWorkModeClassification(insertedJobIds);
     }
 
     const result: IngestResult = {
@@ -197,6 +204,9 @@ export class JobsService {
       interest,
       applied,
       rejected,
+      workMode,
+      locationCountry,
+      locationCity,
       sortBy,
       sortDir,
     } = query;
@@ -212,6 +222,9 @@ export class JobsService {
       interest,
       applied,
       rejected,
+      workMode,
+      locationCountry,
+      locationCity,
     });
     this.applySorting(listQuery, userId, profileId, sortBy, sortDir);
     const total = await listQuery.getCount();
@@ -333,12 +346,33 @@ export class JobsService {
       interest?: InterestStatus;
       applied?: boolean;
       rejected?: boolean;
+      workMode?: WorkMode[];
+      locationCountry?: string;
+      locationCity?: string;
     },
   ) {
     const qb = this.jobsRepository.createQueryBuilder('job');
 
     if (filters.source) {
       qb.andWhere('job.source = :source', { source: filters.source });
+    }
+
+    if (filters.workMode && filters.workMode.length > 0) {
+      qb.andWhere('job.work_mode IN (:...workMode)', {
+        workMode: filters.workMode,
+      });
+    }
+
+    if (filters.locationCountry) {
+      qb.andWhere('job.location_country ILIKE :locationCountry', {
+        locationCountry: `%${filters.locationCountry}%`,
+      });
+    }
+
+    if (filters.locationCity) {
+      qb.andWhere('job.location_city ILIKE :locationCity', {
+        locationCity: `%${filters.locationCity}%`,
+      });
     }
 
     if (
@@ -545,8 +579,9 @@ export class JobsService {
     const activeProfiles = await this.profilesRepository.find({
       where: { user_id: userId, is_active: true },
     });
+    const user = await this.usersRepository.findOneBy({ id: userId });
 
-    const body = this.buildScrapeRequestBody(activeProfiles);
+    const body = this.buildScrapeRequestBody(activeProfiles, user);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 120_000);
 
@@ -631,6 +666,7 @@ export class JobsService {
 
   private buildScrapeRequestBody(
     activeProfiles: SearchProfile[],
+    user: User | null,
   ): Record<string, unknown> | null {
     if (activeProfiles.length === 0) {
       return null;
@@ -655,9 +691,20 @@ export class JobsService {
     ).filter((keyword) => keyword.length >= 3);
 
     const searchTerms = uniqueStrings([...roleTerms, ...technicalKeywords]);
-    const locations = uniqueStrings(
+    const profileLocations = uniqueStrings(
       activeProfiles.flatMap((profile) => profile.locations ?? []),
     );
+
+    // No profile has its own locations set: fall back to the user's home
+    // city/country so scraping isn't limited to the scraper's own defaults.
+    const homeLocation = uniqueStrings(
+      [user?.home_city, user?.home_country].filter(
+        (value): value is string => !!value,
+      ),
+    );
+
+    const locations =
+      profileLocations.length > 0 ? profileLocations : homeLocation;
 
     if (searchTerms.length === 0 && locations.length === 0) {
       return null;
@@ -671,6 +718,10 @@ export class JobsService {
   }
 
   private mapIngestRecord(record: IngestJobDto): Partial<Job> {
+    const workMode =
+      record.work_mode ??
+      classifyWorkMode(record.title, record.location, record.description);
+
     return {
       title: record.title,
       url: record.job_url,
@@ -683,6 +734,9 @@ export class JobsService {
       salary_min: this.parseSalaryAmount(record.min_amount),
       salary_max: this.parseSalaryAmount(record.max_amount),
       salary_interval: record.interval ?? null,
+      work_mode: workMode,
+      work_mode_source:
+        workMode === WorkMode.UNKNOWN ? null : WorkModeSource.HEURISTIC,
     };
   }
 

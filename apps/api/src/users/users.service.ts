@@ -98,6 +98,8 @@ export class UsersService {
     const update: Partial<User> = {};
     if (dto.name !== undefined) update.name = dto.name;
     if (dto.email !== undefined) update.email = dto.email;
+    if (dto.home_city !== undefined) update.home_city = dto.home_city;
+    if (dto.home_country !== undefined) update.home_country = dto.home_country;
 
     await this.usersRepository.update(userId, update);
     const updated = await this.findById(userId);
@@ -217,6 +219,8 @@ export class UsersService {
       cv_text: user.cv_text,
       cv_filename: user.cv_filename,
       cv_uploaded_at: user.cv_uploaded_at,
+      home_city: user.home_city,
+      home_country: user.home_country,
       created_at: user.created_at,
     };
   }

@@ -23,6 +23,14 @@ export class DeleteAllJobsResultDto {
   deleted: number;
 }
 
+export class WorkModeBackfillResultDto {
+  @ApiProperty({
+    example: 42,
+    description: 'Jobs with work_mode=unknown queued for AI classification',
+  })
+  queued: number;
+}
+
 export class PaginatedJobsResponseDto {
   @ApiProperty({ type: [Job] })
   data: Job[];

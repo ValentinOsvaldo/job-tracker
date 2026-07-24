@@ -1,11 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
+  IsString,
   IsUUID,
   Max,
   Min,
@@ -14,6 +16,17 @@ import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
 import { JobSortBy } from '../enums/job-sort-by.enum';
 import { SortDirection } from '../enums/sort-direction.enum';
+import { WorkMode } from '../enums/work-mode.enum';
+
+function toArray({ value }: { value: unknown }): unknown {
+  if (typeof value !== 'string') {
+    return value;
+  }
+  return value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 export class ListJobsQueryDto {
   @ApiPropertyOptional({ enum: JobSource, example: JobSource.LINKEDIN })
@@ -38,6 +51,28 @@ export class ListJobsQueryDto {
   @IsOptional()
   @IsEnum(InterestStatus)
   interest?: InterestStatus;
+
+  @ApiPropertyOptional({
+    enum: WorkMode,
+    isArray: true,
+    description: 'Comma-separated list, e.g. remote,hybrid',
+    example: 'remote,hybrid',
+  })
+  @IsOptional()
+  @Transform(toArray)
+  @IsArray()
+  @IsEnum(WorkMode, { each: true })
+  work_mode?: WorkMode[];
+
+  @ApiPropertyOptional({ example: 'Mexico' })
+  @IsOptional()
+  @IsString()
+  location_country?: string;
+
+  @ApiPropertyOptional({ example: 'Guadalajara' })
+  @IsOptional()
+  @IsString()
+  location_city?: string;
 
   @ApiPropertyOptional({ description: 'Filter to jobs the user applied to' })
   @IsOptional()

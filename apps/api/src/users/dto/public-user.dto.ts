@@ -26,6 +26,12 @@ export class PublicUserDto {
   @ApiPropertyOptional({ nullable: true, type: String, format: 'date-time' })
   cv_uploaded_at: Date | null;
 
+  @ApiPropertyOptional({ nullable: true, example: 'Guadalajara' })
+  home_city: string | null;
+
+  @ApiPropertyOptional({ nullable: true, example: 'Mexico' })
+  home_country: string | null;
+
   @ApiProperty({ type: String, format: 'date-time' })
   created_at: Date;
 }

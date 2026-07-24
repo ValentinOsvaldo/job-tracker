@@ -8,10 +8,17 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { AI_JOB_ANALYZER, AI_JOB_SUMMARIZER } from '../ai/ai.constants';
+import {
+  AI_JOB_ANALYZER,
+  AI_JOB_SUMMARIZER,
+  AI_WORK_MODE_CLASSIFIER,
+} from '../ai/ai.constants';
 import { JobAnalyzer } from '../ai/interfaces/job-analyzer.interface';
 import { JobSummarizer } from '../ai/interfaces/job-summarizer.interface';
+import { WorkModeClassifier } from '../ai/interfaces/work-mode-classifier.interface';
 import { Job } from '../jobs/entities/job.entity';
+import { WorkMode } from '../jobs/enums/work-mode.enum';
+import { WorkModeSource } from '../jobs/enums/work-mode-source.enum';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { RegenerateAnalysesResult } from './dto/regenerate-analyses-result.dto';
@@ -43,6 +50,8 @@ export class JobAnalysesService {
     private readonly jobAnalyzer: JobAnalyzer,
     @Inject(AI_JOB_SUMMARIZER)
     private readonly jobSummarizer: JobSummarizer,
+    @Inject(AI_WORK_MODE_CLASSIFIER)
+    private readonly workModeClassifier: WorkModeClassifier,
     private readonly configService: ConfigService,
   ) {}
 
@@ -112,6 +121,97 @@ export class JobAnalysesService {
       .catch((error: unknown) => {
         this.logger.error('Failed to queue description summaries', error);
       });
+  }
+
+  /** Only classifies jobs whose work_mode wasn't already resolved by the
+   * scraper/backend heuristic — keeps AI usage limited to the residual. */
+  queueWorkModeClassification(jobIds: string[]): void {
+    if (jobIds.length === 0) {
+      return;
+    }
+
+    void this.jobsRepository
+      .find({ where: { id: In(jobIds), work_mode: WorkMode.UNKNOWN } })
+      .then((jobs) => this.runWorkModeBatch(jobs))
+      .catch((error: unknown) => {
+        this.logger.error('Failed to queue work mode classification', error);
+      });
+  }
+
+  async regenerateWorkModeForJob(jobId: string): Promise<Job> {
+    const job = await this.jobsRepository.findOneBy({ id: jobId });
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    await this.classifyAndSaveWorkMode(job, { force: true });
+
+    return (await this.jobsRepository.findOneBy({ id: jobId })) ?? job;
+  }
+
+  /** Fire-and-forget backfill for jobs ingested before this feature existed
+   * (or left as 'unknown' by the heuristic). Returns immediately with how
+   * many jobs were queued; classification runs in the background. */
+  async backfillWorkModes(): Promise<{ queued: number }> {
+    const jobs = await this.jobsRepository.find({
+      where: { work_mode: WorkMode.UNKNOWN },
+    });
+
+    void this.runWorkModeBatch(jobs).catch((error: unknown) => {
+      this.logger.error('Failed to backfill work modes', error);
+    });
+
+    return { queued: jobs.length };
+  }
+
+  private async runWorkModeBatch(jobs: Job[]): Promise<void> {
+    if (jobs.length === 0) {
+      return;
+    }
+
+    const batchSize = Number(this.configService.get('AI_BATCH_SIZE') ?? 5);
+    const batchDelayMs = Number(
+      this.configService.get('AI_BATCH_DELAY_MS') ?? 200,
+    );
+
+    for (let index = 0; index < jobs.length; index += batchSize) {
+      const chunk = jobs.slice(index, index + batchSize);
+
+      await Promise.allSettled(
+        chunk.map((job) => this.classifyAndSaveWorkMode(job)),
+      );
+
+      if (index + batchSize < jobs.length) {
+        await this.sleep(batchDelayMs);
+      }
+    }
+  }
+
+  private async classifyAndSaveWorkMode(
+    job: Job,
+    options: TaskOptions = {},
+  ): Promise<void> {
+    if (job.work_mode !== WorkMode.UNKNOWN && !options.force) {
+      return;
+    }
+
+    try {
+      const result = await this.workModeClassifier.classify(job);
+
+      await this.jobsRepository.update(job.id, {
+        work_mode: result.work_mode,
+        work_mode_source: WorkModeSource.AI,
+        location_city: result.location_city,
+        location_region: result.location_region,
+        location_country: result.location_country,
+      });
+    } catch (error: unknown) {
+      this.logger.warn(
+        `Work mode classification failed for job ${job.id}`,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
   queueAnalysesForProfile(profileId: string): void {

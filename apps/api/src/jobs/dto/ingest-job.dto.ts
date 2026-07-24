@@ -11,6 +11,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { JobSource } from '../enums/job-source.enum';
+import { WorkMode } from '../enums/work-mode.enum';
 
 export class IngestJobDto {
   @ApiProperty({ example: 'Senior Frontend Developer' })
@@ -37,6 +38,16 @@ export class IngestJobDto {
   @IsOptional()
   @IsString()
   location?: string | null;
+
+  @ApiPropertyOptional({
+    enum: WorkMode,
+    nullable: true,
+    description:
+      'Work mode heuristically classified by the scraper; falls back to a server-side heuristic when omitted',
+  })
+  @IsOptional()
+  @IsEnum(WorkMode)
+  work_mode?: WorkMode | null;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()

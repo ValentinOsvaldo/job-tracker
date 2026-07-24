@@ -36,6 +36,7 @@ import {
   DeleteAllJobsResultDto,
   IngestResultDto,
   PaginatedJobsResponseDto,
+  WorkModeBackfillResultDto,
 } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import {
@@ -107,6 +108,9 @@ export class JobsController {
       interest: query.interest,
       applied: query.applied,
       rejected: query.rejected,
+      workMode: query.work_mode,
+      locationCountry: query.location_country,
+      locationCity: query.location_city,
       sortBy: query.sort_by,
       sortDir: query.sort_dir,
       page: query.page ?? 1,
@@ -187,6 +191,33 @@ export class JobsController {
   @ApiResponse({ status: 404, description: 'Job not found' })
   regenerateSummary(@Param('id', ParseUUIDPipe) id: string) {
     return this.jobAnalysesService.regenerateSummaryForJob(id);
+  }
+
+  @Post(':id/work-mode/regenerate')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Regenerate the AI work mode/location classification for a job',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: Job })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  regenerateWorkMode(@Param('id', ParseUUIDPipe) id: string) {
+    return this.jobAnalysesService.regenerateWorkModeForJob(id);
+  }
+
+  @Post('work-mode/backfill')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary:
+      'Queue AI work mode/location classification for all jobs still unknown (admin only)',
+  })
+  @ApiResponse({ status: 200, type: WorkModeBackfillResultDto })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  backfillWorkModes() {
+    return this.jobAnalysesService.backfillWorkModes();
   }
 
   @Get(':id')

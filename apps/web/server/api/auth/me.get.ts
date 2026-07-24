@@ -12,6 +12,8 @@ export default defineEventHandler(async (event) => {
     cv_text: user.cv_text,
     cv_filename: user.cv_filename,
     cv_uploaded_at: user.cv_uploaded_at ? String(user.cv_uploaded_at) : null,
+    home_city: user.home_city,
+    home_country: user.home_country,
     created_at: String(user.created_at)
   }
 

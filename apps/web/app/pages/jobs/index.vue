@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InterestStatus, Job, JobSortBy, JobSource, ListJobsQuery, SortDirection } from '~/types/api'
+import type { InterestStatus, Job, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -28,6 +28,8 @@ type Filters = {
   profile_id: string | 'all'
   status: StatusFilter
   min_score: number | undefined
+  work_mode: WorkMode[]
+  location_city: string
   sort_by: JobSortBy | undefined
   sort_dir: SortDirection
   page: number
@@ -46,12 +48,19 @@ function readQueryNumber(value: unknown): number | undefined {
   return Number.isNaN(num) ? undefined : num
 }
 
+function readQueryArray(value: unknown): string[] {
+  const raw = readQueryString(value)
+  return raw ? raw.split(',').map(item => item.trim()).filter(Boolean) : []
+}
+
 function filtersFromQuery(query: Record<string, unknown>): Filters {
   return {
     source: (readQueryString(query.source) as JobSource | undefined) ?? 'all',
     profile_id: readQueryString(query.profile_id) ?? 'all',
     status: (readQueryString(query.status) as StatusFilter | undefined) ?? 'all',
     min_score: readQueryNumber(query.min_score),
+    work_mode: readQueryArray(query.work_mode) as WorkMode[],
+    location_city: readQueryString(query.location_city) ?? '',
     sort_by: readQueryString(query.sort_by) as JobSortBy | undefined,
     sort_dir: (readQueryString(query.sort_dir) as SortDirection | undefined) ?? 'asc',
     page: readQueryNumber(query.page) ?? 1,
@@ -65,6 +74,8 @@ function queryFromFilters(source: Filters): Record<string, string> {
   if (source.profile_id !== 'all') query.profile_id = source.profile_id
   if (source.status !== 'all') query.status = source.status
   if (source.min_score !== undefined) query.min_score = String(source.min_score)
+  if (source.work_mode.length > 0) query.work_mode = source.work_mode.join(',')
+  if (source.location_city) query.location_city = source.location_city
   if (source.sort_by) {
     query.sort_by = source.sort_by
     query.sort_dir = source.sort_dir
@@ -89,6 +100,8 @@ const queryFilters = computed<ListJobsQuery>(() => ({
   min_score: typeof filters.min_score === 'number' && !Number.isNaN(filters.min_score)
     ? filters.min_score
     : undefined,
+  work_mode: filters.work_mode.length > 0 ? filters.work_mode.join(',') : undefined,
+  location_city: filters.location_city || undefined,
   sort_by: filters.sort_by,
   sort_dir: filters.sort_by ? filters.sort_dir : undefined,
   page: filters.page,
@@ -127,6 +140,20 @@ const statusItems: { label: string, value: StatusFilter }[] = [
   { label: 'Rejected', value: 'rejected' }
 ]
 
+const workModeItems: { label: string, value: WorkMode }[] = [
+  { label: 'Remote', value: 'remote' },
+  { label: 'Hybrid', value: 'hybrid' },
+  { label: 'Onsite', value: 'onsite' },
+  { label: 'Unknown', value: 'unknown' }
+]
+
+const WORK_MODE_COLORS: Record<WorkMode, 'success' | 'warning' | 'neutral'> = {
+  remote: 'success',
+  hybrid: 'warning',
+  onsite: 'neutral',
+  unknown: 'neutral'
+}
+
 const totalPages = computed(() => {
   const total = jobsResponse.value?.total ?? 0
   const limit = jobsResponse.value?.limit ?? filters.limit
@@ -139,6 +166,8 @@ watch(
     filters.profile_id,
     filters.status,
     filters.min_score,
+    filters.work_mode,
+    filters.location_city,
     filters.limit,
     filters.sort_by,
     filters.sort_dir
@@ -247,6 +276,17 @@ const columns = [
     header: 'Source',
     cell: ({ row }: { row: { original: { source: string } } }) =>
       h(UBadge, { color: 'neutral', variant: 'subtle', size: 'sm', class: 'capitalize' }, () => row.original.source)
+  },
+  {
+    accessorKey: 'work_mode',
+    header: 'Mode',
+    cell: ({ row }: { row: { original: { work_mode: WorkMode } } }) =>
+      h(UBadge, {
+        color: WORK_MODE_COLORS[row.original.work_mode] ?? 'neutral',
+        variant: 'subtle',
+        size: 'sm',
+        class: 'capitalize'
+      }, () => row.original.work_mode)
   },
   {
     id: 'score',
@@ -365,7 +405,7 @@ async function onScrape() {
       </UButton>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       <UFormField label="Source">
         <USelect
           v-model="filters.source"
@@ -386,6 +426,25 @@ async function onScrape() {
         <USelect
           v-model="filters.status"
           :items="statusItems"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Work mode">
+        <USelectMenu
+          v-model="filters.work_mode"
+          :items="workModeItems"
+          value-key="value"
+          multiple
+          placeholder="All modes"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="City">
+        <UInput
+          v-model="filters.location_city"
+          placeholder="e.g. Guadalajara"
           class="w-full"
         />
       </UFormField>

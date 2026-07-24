@@ -30,4 +30,4 @@ FROM base
 COPY --from=build /app /app
 
 EXPOSE 3000
-CMD [ "node", "dist/main" ]
+CMD [ "sh", "-c", "npm run migration:run && node dist/main" ]

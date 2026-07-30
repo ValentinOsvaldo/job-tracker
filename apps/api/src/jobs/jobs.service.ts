@@ -533,7 +533,13 @@ export class JobsService {
         }, 'max_score').orderBy('max_score', dir, 'NULLS LAST');
         return;
       default:
-        qb.orderBy('job.scraped_at', 'DESC');
+        // Rank by the job's actual posting date when the site provided one;
+        // fall back to when we scraped it for postings with no date_posted,
+        // so those don't all clump together instead of reflecting recency.
+        qb.orderBy(
+          'COALESCE(job.date_posted::timestamptz, job.scraped_at)',
+          'DESC',
+        );
     }
   }
 

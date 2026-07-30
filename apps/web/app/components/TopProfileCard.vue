@@ -36,7 +36,7 @@ function analysisFor(job: Job, profileId: string) {
       v-if="!jobs.length"
       class="text-sm text-muted py-4"
     >
-      No analyzed jobs for this profile this week yet.
+      No hay ofertas nuevas esta semana para este perfil.
     </div>
 
     <ul
@@ -72,6 +72,9 @@ function analysisFor(job: Job, profileId: string) {
                 analysisFor(job, profile.id)?.salary_max ?? job.salary_max,
                 analysisFor(job, profile.id)?.salary_is_inferred
               ) }}
+            </span>
+            <span class="text-xs text-muted whitespace-nowrap">
+              {{ formatRelativeDate(job.scraped_at) }}
             </span>
           </div>
         </NuxtLink>

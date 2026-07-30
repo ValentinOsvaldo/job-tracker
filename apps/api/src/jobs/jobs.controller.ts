@@ -115,6 +115,7 @@ export class JobsController {
       relevance: query.relevance,
       locationCountry: query.location_country,
       locationCity: query.location_city,
+      addedWithin: query.added_within,
       sortBy: query.sort_by,
       sortDir: query.sort_dir,
       page: query.page ?? 1,

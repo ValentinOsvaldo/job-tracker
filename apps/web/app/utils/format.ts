@@ -33,6 +33,35 @@ export function formatDate(value: string | null | undefined) {
   })
 }
 
+const RELATIVE_TIME = new Intl.RelativeTimeFormat('es-MX', { numeric: 'auto' })
+
+/** Short relative time for recent timestamps (e.g. "hace 3 h"), falling back
+ * to an absolute date once it's more than a week old. */
+export function formatRelativeDate(value: string | null | undefined) {
+  if (!value) return '—'
+  const date = new Date(value)
+  const diffMs = date.getTime() - Date.now()
+  const diffHours = diffMs / (1000 * 60 * 60)
+
+  if (Math.abs(diffHours) < 1) {
+    const diffMinutes = Math.round(diffMs / (1000 * 60))
+    return RELATIVE_TIME.format(diffMinutes, 'minute')
+  }
+  if (Math.abs(diffHours) < 24) {
+    return RELATIVE_TIME.format(Math.round(diffHours), 'hour')
+  }
+  const diffDays = diffHours / 24
+  if (Math.abs(diffDays) < 7) {
+    return RELATIVE_TIME.format(Math.round(diffDays), 'day')
+  }
+  return formatDate(value)
+}
+
+export function isRecentlyAdded(value: string | null | undefined, hours = 24) {
+  if (!value) return false
+  return Date.now() - new Date(value).getTime() < hours * 60 * 60 * 1000
+}
+
 function formatOneRange(min: number | null, max: number | null, currency: string) {
   if (min == null && max == null) return null
   const range = min != null && max != null

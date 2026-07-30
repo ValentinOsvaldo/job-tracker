@@ -4,6 +4,7 @@ import { JobRelevance } from '../enums/job-relevance.enum';
 import { JobSortBy } from '../enums/job-sort-by.enum';
 import { SortDirection } from '../enums/sort-direction.enum';
 import { WorkMode } from '../enums/work-mode.enum';
+import { AddedWithin } from '../enums/added-within.enum';
 
 export interface JobsListQuery {
   source?: JobSource;
@@ -16,6 +17,7 @@ export interface JobsListQuery {
   relevance?: JobRelevance;
   locationCountry?: string;
   locationCity?: string;
+  addedWithin?: AddedWithin;
   sortBy?: JobSortBy;
   sortDir?: SortDirection;
   page: number;

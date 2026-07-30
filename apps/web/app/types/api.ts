@@ -7,6 +7,7 @@ export type UserRole = 'admin' | 'user'
 export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown'
 export type WorkModeSource = 'heuristic' | 'ai'
 export type JobRelevance = 'unknown' | 'relevant' | 'irrelevant'
+export type AddedWithin = 'day' | 'week'
 
 export interface PublicUser {
   id: string
@@ -140,6 +141,7 @@ export interface ListJobsQuery {
   relevance?: JobRelevance
   location_country?: string
   location_city?: string
+  added_within?: AddedWithin
   sort_by?: JobSortBy
   sort_dir?: SortDirection
   page?: number

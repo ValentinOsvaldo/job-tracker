@@ -51,9 +51,9 @@ services:
       - key: SEARCH_TERMS
         value: 'software engineer,frontend developer,backend developer'
       - key: LOCATIONS
-        value: 'mexico,worldwide'
+        value: 'mexico'
       - key: RESULTS
-        value: '30'
+        value: '15'
       - key: HOURS_OLD
         value: '48'
       - key: SCRAPE_INTERVAL_HOURS

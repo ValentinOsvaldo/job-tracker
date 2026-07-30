@@ -18,6 +18,7 @@ import { JobRelevance } from '../enums/job-relevance.enum';
 import { JobSortBy } from '../enums/job-sort-by.enum';
 import { SortDirection } from '../enums/sort-direction.enum';
 import { WorkMode } from '../enums/work-mode.enum';
+import { AddedWithin } from '../enums/added-within.enum';
 
 function toArray({ value }: { value: unknown }): unknown {
   if (typeof value !== 'string') {
@@ -93,6 +94,15 @@ export class ListJobsQueryDto {
   @Type(() => Boolean)
   @IsBoolean()
   rejected?: boolean;
+
+  @ApiPropertyOptional({
+    enum: AddedWithin,
+    description:
+      'Filter to jobs scraped within this window. Omit to include all history.',
+  })
+  @IsOptional()
+  @IsEnum(AddedWithin)
+  added_within?: AddedWithin;
 
   @ApiPropertyOptional({ enum: JobSortBy })
   @IsOptional()

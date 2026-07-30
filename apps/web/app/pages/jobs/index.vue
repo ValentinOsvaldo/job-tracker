@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InterestStatus, Job, JobRelevance, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
+import type { AddedWithin, InterestStatus, Job, JobRelevance, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -27,6 +27,7 @@ const rowSelection = ref<Record<string, boolean>>({})
 
 type StatusFilter = 'all' | 'liked' | 'disliked' | 'applied' | 'rejected'
 type RelevanceFilter = 'all' | JobRelevance
+type AddedFilter = 'all' | AddedWithin
 
 type Filters = {
   source: JobSource | 'all'
@@ -36,6 +37,7 @@ type Filters = {
   work_mode: WorkMode[]
   relevance: RelevanceFilter
   location_city: string
+  added: AddedFilter
   sort_by: JobSortBy | undefined
   sort_dir: SortDirection
   page: number
@@ -68,6 +70,7 @@ function filtersFromQuery(query: Record<string, unknown>): Filters {
     work_mode: readQueryArray(query.work_mode) as WorkMode[],
     relevance: (readQueryString(query.relevance) as RelevanceFilter | undefined) ?? 'all',
     location_city: readQueryString(query.location_city) ?? '',
+    added: (readQueryString(query.added) as AddedFilter | undefined) ?? 'all',
     sort_by: readQueryString(query.sort_by) as JobSortBy | undefined,
     sort_dir: (readQueryString(query.sort_dir) as SortDirection | undefined) ?? 'asc',
     page: readQueryNumber(query.page) ?? 1,
@@ -84,6 +87,7 @@ function queryFromFilters(source: Filters): Record<string, string> {
   if (source.work_mode.length > 0) query.work_mode = source.work_mode.join(',')
   if (source.relevance !== 'all') query.relevance = source.relevance
   if (source.location_city) query.location_city = source.location_city
+  if (source.added !== 'all') query.added = source.added
   if (source.sort_by) {
     query.sort_by = source.sort_by
     query.sort_dir = source.sort_dir
@@ -111,6 +115,7 @@ const queryFilters = computed<ListJobsQuery>(() => ({
   work_mode: filters.work_mode.length > 0 ? filters.work_mode.join(',') : undefined,
   relevance: filters.relevance === 'all' ? undefined : filters.relevance,
   location_city: filters.location_city || undefined,
+  added_within: filters.added === 'all' ? undefined : filters.added,
   sort_by: filters.sort_by,
   sort_dir: filters.sort_by ? filters.sort_dir : undefined,
   page: filters.page,
@@ -180,6 +185,12 @@ const RELEVANCE_BADGE: Record<JobRelevance, { label: string, color: 'neutral' | 
   irrelevant: { label: 'Not related', color: 'error' }
 }
 
+const addedItems: { label: string, value: AddedFilter }[] = [
+  { label: 'Todo (histórico)', value: 'all' },
+  { label: 'Últimas 24h', value: 'day' },
+  { label: 'Últimos 7 días', value: 'week' }
+]
+
 const totalPages = computed(() => {
   const total = jobsResponse.value?.total ?? 0
   const limit = jobsResponse.value?.limit ?? filters.limit
@@ -195,6 +206,7 @@ watch(
     filters.work_mode,
     filters.relevance,
     filters.location_city,
+    filters.added,
     filters.limit,
     filters.sort_by,
     filters.sort_dir
@@ -368,12 +380,17 @@ const baseColumns = [
   {
     accessorKey: 'title',
     header: 'Title',
-    cell: ({ row }: { row: { original: { id: string, title: string, company: string | null } } }) => {
+    cell: ({ row }: { row: { original: { id: string, title: string, company: string | null, scraped_at: string } } }) => {
       return h('div', { class: 'min-w-0' }, [
-        h(UTooltip, { text: row.original.title }, () => h(resolveComponent('NuxtLink'), {
-          to: `/jobs/${row.original.id}`,
-          class: 'block max-w-[220px] truncate font-medium text-highlighted hover:underline'
-        }, () => row.original.title)),
+        h('div', { class: 'flex items-center gap-1.5' }, [
+          h(UTooltip, { text: row.original.title }, () => h(resolveComponent('NuxtLink'), {
+            to: `/jobs/${row.original.id}`,
+            class: 'block max-w-[190px] truncate font-medium text-highlighted hover:underline'
+          }, () => row.original.title)),
+          isRecentlyAdded(row.original.scraped_at)
+            ? h(UBadge, { color: 'success', variant: 'subtle', size: 'sm', class: 'shrink-0' }, () => 'Nuevo')
+            : null
+        ]),
         row.original.company
           ? h('p', { class: 'text-xs text-muted truncate' }, row.original.company)
           : null
@@ -436,6 +453,14 @@ const baseColumns = [
     accessorKey: 'date_posted',
     header: 'Posted',
     cell: ({ row }: { row: { original: { date_posted: string | null } } }) => formatDate(row.original.date_posted)
+  },
+  {
+    accessorKey: 'scraped_at',
+    header: 'Agregado',
+    cell: ({ row }: { row: { original: { scraped_at: string } } }) => {
+      const text = formatRelativeDate(row.original.scraped_at)
+      return h(UTooltip, { text: formatDate(row.original.scraped_at) }, () => h('span', { class: 'whitespace-nowrap' }, text))
+    }
   },
   {
     id: 'status',
@@ -588,6 +613,14 @@ async function onScrape() {
         <UInput
           v-model="filters.location_city"
           placeholder="e.g. Guadalajara"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Agregado">
+        <USelect
+          v-model="filters.added"
+          :items="addedItems"
           class="w-full"
         />
       </UFormField>

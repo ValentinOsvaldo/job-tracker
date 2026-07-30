@@ -19,6 +19,7 @@ import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { JobSource } from './enums/job-source.enum';
 import { JobRelevance } from './enums/job-relevance.enum';
+import { AddedWithin } from './enums/added-within.enum';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
@@ -218,6 +219,7 @@ export class JobsService {
       relevance,
       locationCountry,
       locationCity,
+      addedWithin,
       sortBy,
       sortDir,
     } = query;
@@ -237,6 +239,7 @@ export class JobsService {
       relevance,
       locationCountry,
       locationCity,
+      addedWithin,
     });
     this.applySorting(listQuery, userId, profileId, sortBy, sortDir);
     const total = await listQuery.getCount();
@@ -362,9 +365,17 @@ export class JobsService {
       relevance?: JobRelevance;
       locationCountry?: string;
       locationCity?: string;
+      addedWithin?: AddedWithin;
     },
   ) {
     const qb = this.jobsRepository.createQueryBuilder('job');
+
+    if (filters.addedWithin) {
+      const hours = filters.addedWithin === AddedWithin.DAY ? 24 : 24 * 7;
+      qb.andWhere('job.scraped_at >= :scrapedAfter', {
+        scrapedAfter: new Date(Date.now() - hours * 60 * 60 * 1000),
+      });
+    }
 
     if (filters.source) {
       qb.andWhere('job.source = :source', { source: filters.source });

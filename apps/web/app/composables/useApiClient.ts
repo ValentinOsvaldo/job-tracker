@@ -138,8 +138,11 @@ export function useApiClient() {
     return requestFetch<Job>(`/api/jobs/${jobId}/summary/regenerate`, { method: 'POST' })
   }
 
-  function regenerateJobAnalyses(jobId: string) {
-    return requestFetch<RegenerateAnalysesResult>(`/api/jobs/${jobId}/analyses/regenerate`, { method: 'POST' })
+  function regenerateJobAnalyses(jobId: string, profileId?: string) {
+    return requestFetch<RegenerateAnalysesResult>(`/api/jobs/${jobId}/analyses/regenerate`, {
+      method: 'POST',
+      query: profileId ? { profile_id: profileId } : undefined
+    })
   }
 
   function runSeed() {

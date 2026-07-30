@@ -27,6 +27,7 @@ import { User } from '../users/entities/user.entity';
 import { RegenerateAnalysesResult } from './dto/regenerate-analyses-result.dto';
 import { JobAnalysis } from './entities/job-analysis.entity';
 import { CreateJobAnalysisInput } from './types/create-job-analysis.input';
+import { inferJobRoles } from './utils/infer-job-roles';
 
 interface AnalysisTask {
   job: Job;
@@ -36,6 +37,10 @@ interface AnalysisTask {
 
 interface TaskOptions {
   force?: boolean;
+  /** Narrows which profiles a given job is analyzed against. Used only for
+   * the automatic ingest path — manual/forced regeneration always targets
+   * whatever profile(s) the caller explicitly asked for. */
+  profilesForJob?: (job: Job) => SearchProfile[];
 }
 
 @Injectable()
@@ -431,7 +436,14 @@ export class JobAnalysesService {
     }
 
     const profiles = await this.getEligibleProfiles();
-    return this.buildTasks(jobs, profiles);
+    return this.buildTasks(jobs, profiles, {
+      profilesForJob: (job) => {
+        const inferredRoles = inferJobRoles(job.title);
+        return inferredRoles.length > 0
+          ? profiles.filter((profile) => inferredRoles.includes(profile.role))
+          : profiles;
+      },
+    });
   }
 
   private async buildTasksForProfile(
@@ -491,7 +503,11 @@ export class JobAnalysesService {
     const tasks: AnalysisTask[] = [];
 
     for (const job of jobs) {
-      for (const profile of profiles) {
+      const jobProfiles = options.profilesForJob
+        ? options.profilesForJob(job)
+        : profiles;
+
+      for (const profile of jobProfiles) {
         const key = `${job.id}:${profile.id}`;
 
         if (existingKeys.has(key) || !profile.user?.cv_text) {

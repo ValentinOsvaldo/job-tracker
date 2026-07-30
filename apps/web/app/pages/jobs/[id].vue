@@ -16,41 +16,57 @@ const { data: job, isPending, error, refetch } = useQuery({
   query: () => api.jobQuery(id.value).query()
 })
 
-const regenerating = ref(false)
+const { data: profiles } = useQuery({
+  key: () => ['profiles'],
+  query: () => api.profilesQuery.query()
+})
 
-async function onRegenerate() {
-  regenerating.value = true
+const activeProfiles = computed(() => (profiles.value ?? []).filter(p => p.is_active))
+
+const regeneratingSummary = ref(false)
+const regeneratingProfileId = ref<string | null>(null)
+
+async function onRegenerateSummary() {
+  regeneratingSummary.value = true
 
   try {
-    const [summaryResult, analysesResult] = await Promise.allSettled([
-      api.regenerateJobSummary(id.value),
-      api.regenerateJobAnalyses(id.value)
-    ])
-
-    if (summaryResult.status === 'fulfilled' && job.value) {
-      job.value.description_summary = summaryResult.value.description_summary
+    const result = await api.regenerateJobSummary(id.value)
+    if (job.value) {
+      job.value.description_summary = result.description_summary
     }
-
-    if (summaryResult.status === 'rejected' && analysesResult.status === 'rejected') {
-      toast.add({
-        title: 'No se pudo regenerar',
-        description: 'Intenta de nuevo en unos segundos',
-        color: 'error'
-      })
-    } else {
-      const queued = analysesResult.status === 'fulfilled' ? analysesResult.value.queued : 0
-      toast.add({
-        title: 'Regeneración en curso',
-        description: queued > 0
-          ? `TLDR actualizado. ${queued} análisis en cola.`
-          : 'TLDR actualizado.',
-        color: 'success'
-      })
-    }
-
-    await queryCache.invalidateQueries({ key: ['job', id.value] })
+    toast.add({ title: 'TLDR actualizado', color: 'success' })
+  } catch {
+    toast.add({
+      title: 'No se pudo regenerar el TLDR',
+      description: 'Intenta de nuevo en unos segundos',
+      color: 'error'
+    })
   } finally {
-    regenerating.value = false
+    regeneratingSummary.value = false
+  }
+}
+
+async function onAnalyzeWithProfile(profileId: string, profileName: string) {
+  regeneratingProfileId.value = profileId
+
+  try {
+    await api.regenerateJobAnalyses(id.value, profileId)
+    toast.add({
+      title: `Analizando como ${profileName}`,
+      description: 'El resultado aparecerá en unos segundos.',
+      color: 'success'
+    })
+    setTimeout(() => {
+      void queryCache.invalidateQueries({ key: ['job', id.value] })
+    }, 6000)
+  } catch {
+    toast.add({
+      title: 'No se pudo iniciar el análisis',
+      description: 'Intenta de nuevo en unos segundos',
+      color: 'error'
+    })
+  } finally {
+    regeneratingProfileId.value = null
   }
 }
 
@@ -158,16 +174,36 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
             color="neutral"
             variant="subtle"
             icon="i-lucide-sparkles"
-            :loading="regenerating"
-            :disabled="regenerating"
-            @click="onRegenerate"
+            :loading="regeneratingSummary"
+            :disabled="regeneratingSummary"
+            @click="onRegenerateSummary"
           >
-            Regenerar análisis y TLDR
+            Regenerar TLDR
           </UButton>
           <span class="text-sm text-muted self-center">
             Salary:
             {{ formatSalary(job.salary_min, job.salary_max) }}
           </span>
+        </div>
+
+        <div
+          v-if="activeProfiles.length > 0"
+          class="flex flex-wrap items-center gap-2 pt-1"
+        >
+          <span class="text-xs text-muted">Analizar como:</span>
+          <UButton
+            v-for="profile in activeProfiles"
+            :key="profile.id"
+            color="neutral"
+            variant="outline"
+            size="xs"
+            icon="i-lucide-sparkles"
+            :loading="regeneratingProfileId === profile.id"
+            :disabled="regeneratingProfileId !== null"
+            @click="onAnalyzeWithProfile(profile.id, profile.name)"
+          >
+            {{ profile.name }}
+          </UButton>
         </div>
       </div>
 

@@ -20,7 +20,7 @@ function analysisFor(job: Job, profileId: string) {
             {{ profile.name }}
           </h3>
           <p class="text-xs text-muted capitalize">
-            {{ profile.role }} · Top 5 matches
+            {{ profile.role }} · Top 5 matches this week
           </p>
         </div>
         <UBadge
@@ -36,7 +36,7 @@ function analysisFor(job: Job, profileId: string) {
       v-if="!jobs.length"
       class="text-sm text-muted py-4"
     >
-      No analyzed jobs for this profile yet.
+      No analyzed jobs for this profile this week yet.
     </div>
 
     <ul

@@ -40,6 +40,8 @@ async function loadTopJobs(list: SearchProfile[]) {
       list.map(async (profile) => {
         const response = await api.jobsQuery({
           profile_id: profile.id,
+          min_score: 0,
+          added_within: 'week',
           sort_by: 'score',
           sort_dir: 'desc',
           limit: 5,
@@ -114,7 +116,7 @@ async function onScrape() {
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">
         <h2 class="text-lg font-semibold text-highlighted">
-          Top 5 by profile
+          Top 5 by profile (this week)
         </h2>
         <UButton
           to="/jobs"

@@ -1,4 +1,4 @@
-# Job Tracker — Especificación del Proyecto
+# Job Tracker — Especificación del Proyecto.
 
 ## Resumen
 

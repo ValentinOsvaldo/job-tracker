@@ -18,6 +18,12 @@ const links = computed<NavigationMenuItem[]>(() => [
     active: route.path.startsWith('/jobs')
   },
   {
+    label: 'Postulaciones',
+    to: '/applications',
+    icon: 'i-lucide-send',
+    active: route.path.startsWith('/applications')
+  },
+  {
     label: 'Profiles',
     to: '/profiles',
     icon: 'i-lucide-users',

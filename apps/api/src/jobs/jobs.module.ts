@@ -6,12 +6,19 @@ import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { Job } from './entities/job.entity';
 import { JobUserStatus } from './entities/job-user-status.entity';
+import { BlockedCompany } from './entities/blocked-company.entity';
 import { JobsController } from './jobs.controller';
 import { JobsService } from './jobs.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Job, SearchProfile, JobUserStatus, User]),
+    TypeOrmModule.forFeature([
+      Job,
+      SearchProfile,
+      JobUserStatus,
+      User,
+      BlockedCompany,
+    ]),
     JobAnalysesModule,
     MarketTrendsModule,
   ],

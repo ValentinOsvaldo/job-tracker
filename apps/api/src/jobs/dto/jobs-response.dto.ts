@@ -13,6 +13,12 @@ export class IngestResultDto {
 
   @ApiProperty({ example: 0 })
   rejected: number;
+
+  @ApiProperty({
+    example: 0,
+    description: 'Records skipped because their company is blocklisted',
+  })
+  blocked: number;
 }
 
 export class DeleteAllJobsResultDto {

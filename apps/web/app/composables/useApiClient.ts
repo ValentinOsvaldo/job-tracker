@@ -1,6 +1,9 @@
 import type {
+  BlockedCompany,
   BulkDeleteResult,
   ChangePasswordInput,
+  CreateBlockedCompanyInput,
+  CreateBlockedCompanyResult,
   CreateProfileInput,
   CreateUserInput,
   CvAnalysisResponse,
@@ -75,6 +78,11 @@ export function useApiClient() {
     query: () => requestFetch<PublicUser[]>('/api/users')
   }
 
+  const blockedCompaniesQuery = {
+    key: ['blocked-companies'] as const,
+    query: () => requestFetch<BlockedCompany[]>('/api/jobs/blocked-companies')
+  }
+
   function cvAnalysisQuery(refresh = false) {
     return {
       key: ['cv-analysis', refresh] as const,
@@ -130,6 +138,17 @@ export function useApiClient() {
     })
   }
 
+  function createBlockedCompany(body: CreateBlockedCompanyInput) {
+    return requestFetch<CreateBlockedCompanyResult>('/api/jobs/blocked-companies', {
+      method: 'POST',
+      body
+    })
+  }
+
+  function deleteBlockedCompany(id: string) {
+    return requestFetch<{ ok: true }>(`/api/jobs/blocked-companies/${id}`, { method: 'DELETE' })
+  }
+
   function scanRelevance() {
     return requestFetch<RelevanceScanResult>('/api/jobs/relevance/scan', { method: 'POST' })
   }
@@ -179,6 +198,7 @@ export function useApiClient() {
     trendsQuery,
     meQuery,
     usersQuery,
+    blockedCompaniesQuery,
     cvAnalysisQuery,
     createProfile,
     updateProfile,
@@ -188,6 +208,8 @@ export function useApiClient() {
     updateJobStatus,
     deleteJob,
     bulkDeleteJobs,
+    createBlockedCompany,
+    deleteBlockedCompany,
     scanRelevance,
     regenerateJobSummary,
     regenerateJobAnalyses,

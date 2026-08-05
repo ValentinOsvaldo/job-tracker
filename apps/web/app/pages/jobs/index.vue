@@ -274,6 +274,35 @@ function onStatusUpdated(job: Job, result: { interest: InterestStatus | null, ap
 }
 
 const deletingId = ref<string | null>(null)
+const blockingCompany = ref<string | null>(null)
+
+async function onBlockCompany(job: { company: string | null }) {
+  const company = job.company?.trim()
+  if (!company) return
+  if (!confirm(`Bloquear "${company}"? Se ocultarán todas sus ofertas y se eliminarán las existentes.`)) return
+
+  blockingCompany.value = company
+  try {
+    const result = await api.createBlockedCompany({ company, purge_existing: true })
+    toast.add({
+      title: `"${result.blocked_company.company}" bloqueada`,
+      description: result.purged > 0 ? `Se eliminaron ${result.purged} oferta(s)` : undefined,
+      color: 'success'
+    })
+    await queryCache.invalidateQueries({ key: ['jobs'] })
+    await refetch()
+  } catch (err: unknown) {
+    toast.add({
+      title: 'No se pudo bloquear la empresa',
+      description: (err as { statusMessage?: string, data?: { message?: string } })?.statusMessage
+        || (err as { data?: { message?: string } })?.data?.message
+        || 'Try again',
+      color: 'error'
+    })
+  } finally {
+    blockingCompany.value = null
+  }
+}
 
 async function onDelete(job: { id: string, title: string }) {
   if (!confirm(`Delete “${job.title}”? This can't be undone.`)) return
@@ -477,7 +506,7 @@ const baseColumns = [
   {
     id: 'actions',
     header: '',
-    cell: ({ row }: { row: { original: { id: string, title: string } } }) =>
+    cell: ({ row }: { row: { original: { id: string, title: string, company: string | null } } }) =>
       h('div', { class: 'flex items-center justify-end gap-1' }, [
         h(UButton, {
           to: `/jobs/${row.original.id}`,
@@ -488,6 +517,19 @@ const baseColumns = [
         }, () => 'View'),
         auth.isAdmin
           ? h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' })
+          : null,
+        auth.isAdmin && row.original.company
+          ? h(UButton, {
+              'size': 'xs',
+              'color': 'warning',
+              'variant': 'ghost',
+              'icon': 'i-lucide-shield-ban',
+              'loading': blockingCompany.value === row.original.company,
+              'disabled': blockingCompany.value !== null,
+              'aria-label': 'Bloquear empresa',
+              'title': 'Bloquear empresa',
+              'onClick': () => onBlockCompany(row.original)
+            })
           : null,
         auth.isAdmin
           ? h(UButton, {
@@ -514,7 +556,7 @@ async function onScrape() {
     const result = await api.triggerScrape()
     toast.add({
       title: 'Ofertas actualizadas',
-      description: `Enviadas ${result.sent} · insertadas ${result.ingest?.inserted ?? 0} · omitidas ${result.ingest?.skipped ?? 0}${result.filtered_out ? ` · filtradas ${result.filtered_out}` : ''}`,
+      description: `Enviadas ${result.sent} · insertadas ${result.ingest?.inserted ?? 0} · omitidas ${result.ingest?.skipped ?? 0}${result.filtered_out ? ` · filtradas ${result.filtered_out}` : ''}${result.ingest?.blocked ? ` · bloqueadas ${result.ingest.blocked}` : ''}`,
       color: 'success'
     })
     await queryCache.invalidateQueries({ key: ['jobs'] })

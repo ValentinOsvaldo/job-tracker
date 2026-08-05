@@ -20,9 +20,11 @@ import { User } from '../users/entities/user.entity';
 import { JobSource } from './enums/job-source.enum';
 import { JobRelevance } from './enums/job-relevance.enum';
 import { AddedWithin } from './enums/added-within.enum';
+import { CreateBlockedCompanyDto } from './dto/blocked-company.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
+import { BlockedCompany } from './entities/blocked-company.entity';
 import { Job } from './entities/job.entity';
 import { JobUserStatus } from './entities/job-user-status.entity';
 import { InterestStatus } from './enums/interest-status.enum';
@@ -47,6 +49,10 @@ function jobDedupeKey(title: string, company: string | null): string {
   return `${norm(title)}|${norm(company)}`;
 }
 
+function normalizeCompanyName(company: string): string {
+  return company.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
 const MIN_HOURS_BETWEEN_SCRAPES = 24;
 const DEDUPE_LOOKBACK_DAYS = 30;
 
@@ -63,19 +69,31 @@ export class JobsService {
     private readonly usersRepository: Repository<User>,
     @InjectRepository(JobUserStatus)
     private readonly jobUserStatusRepository: Repository<JobUserStatus>,
+    @InjectRepository(BlockedCompany)
+    private readonly blockedCompanyRepository: Repository<BlockedCompany>,
     private readonly jobAnalysesService: JobAnalysesService,
   ) {}
 
   async ingest(records: Record<string, unknown>[]): Promise<IngestResult> {
     const received = records.length;
     let rejected = 0;
+    let blocked = 0;
     const validRecords: IngestJobDto[] = [];
+    const blockedCompanies = await this.getBlockedCompanyNames();
 
     for (const raw of records) {
       const validated = this.validateIngestRecord(raw);
 
       if (!validated) {
         rejected++;
+        continue;
+      }
+
+      if (
+        validated.company &&
+        this.isCompanyBlocked(validated.company, blockedCompanies)
+      ) {
+        blocked++;
         continue;
       }
 
@@ -90,9 +108,10 @@ export class JobsService {
         inserted: 0,
         skipped: 0,
         rejected,
+        blocked,
       };
       this.logger.log(
-        `Ingest complete: received=${received}, inserted=0, skipped=0, rejected=${rejected}`,
+        `Ingest complete: received=${received}, inserted=0, skipped=0, rejected=${rejected}, blocked=${blocked}`,
       );
       return result;
     }
@@ -165,10 +184,11 @@ export class JobsService {
       inserted: newJobs.length,
       skipped: validRecords.length - newJobs.length,
       rejected,
+      blocked,
     };
 
     this.logger.log(
-      `Ingest complete: received=${result.received}, inserted=${result.inserted}, skipped=${result.skipped}, rejected=${result.rejected}`,
+      `Ingest complete: received=${result.received}, inserted=${result.inserted}, skipped=${result.skipped}, rejected=${result.rejected}, blocked=${result.blocked}`,
     );
 
     return result;
@@ -328,6 +348,87 @@ export class JobsService {
     };
   }
 
+  async listBlockedCompanies(): Promise<BlockedCompany[]> {
+    return this.blockedCompanyRepository.find({
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  async createBlockedCompany(
+    dto: CreateBlockedCompanyDto,
+  ): Promise<{ blocked_company: BlockedCompany; purged: number }> {
+    const company = dto.company.trim();
+    const companyNormalized = normalizeCompanyName(company);
+
+    if (!companyNormalized) {
+      throw new BadRequestException('Company name is required');
+    }
+
+    const existing = await this.blockedCompanyRepository.findOne({
+      where: { company_normalized: companyNormalized },
+    });
+
+    if (existing) {
+      throw new BadRequestException(`"${existing.company}" is already blocked`);
+    }
+
+    const blockedCompany = await this.blockedCompanyRepository.save(
+      this.blockedCompanyRepository.create({
+        company,
+        company_normalized: companyNormalized,
+        reason: dto.reason ?? null,
+      }),
+    );
+
+    let purged = 0;
+    if (dto.purge_existing) {
+      purged = await this.purgeJobsForCompany(companyNormalized);
+    }
+
+    this.logger.log(
+      `Blocked company added: company=${company}, purged=${purged}`,
+    );
+
+    return { blocked_company: blockedCompany, purged };
+  }
+
+  async removeBlockedCompany(id: string): Promise<void> {
+    const result = await this.blockedCompanyRepository.delete(id);
+
+    if (!result.affected) {
+      throw new NotFoundException(`Blocked company with id ${id} not found`);
+    }
+  }
+
+  private async purgeJobsForCompany(
+    companyNormalized: string,
+  ): Promise<number> {
+    const result = await this.jobsRepository
+      .createQueryBuilder()
+      .delete()
+      .where('position(:companyNormalized in lower(company)) > 0', {
+        companyNormalized,
+      })
+      .execute();
+
+    return result.affected ?? 0;
+  }
+
+  private async getBlockedCompanyNames(): Promise<string[]> {
+    const blocked = await this.blockedCompanyRepository.find({
+      select: { company_normalized: true },
+    });
+    return blocked.map((row) => row.company_normalized);
+  }
+
+  private isCompanyBlocked(
+    company: string,
+    blockedCompanies: string[],
+  ): boolean {
+    const normalized = normalizeCompanyName(company);
+    return blockedCompanies.some((blocked) => normalized.includes(blocked));
+  }
+
   private async attachUserStatuses(jobs: Job[], userId: string): Promise<void> {
     if (jobs.length === 0) {
       return;
@@ -369,6 +470,17 @@ export class JobsService {
     },
   ) {
     const qb = this.jobsRepository.createQueryBuilder('job');
+
+    // Blocklisted companies (see blocked_companies) are hidden everywhere,
+    // not just at ingest time, so entries added after a job was already
+    // scraped still disappear from the list.
+    qb.andWhere(
+      `NOT EXISTS (
+        SELECT 1 FROM blocked_companies bc
+        WHERE job.company IS NOT NULL
+          AND position(bc.company_normalized in lower(job.company)) > 0
+      )`,
+    );
 
     if (filters.addedWithin) {
       const hours = filters.addedWithin === AddedWithin.DAY ? 24 : 24 * 7;

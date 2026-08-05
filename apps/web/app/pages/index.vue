@@ -72,7 +72,7 @@ async function onScrape() {
     const result = await api.triggerScrape()
     toast.add({
       title: 'Ofertas actualizadas',
-      description: `Enviadas ${result.sent} · insertadas ${result.ingest?.inserted ?? 0} · omitidas ${result.ingest?.skipped ?? 0}${result.filtered_out ? ` · filtradas ${result.filtered_out}` : ''}`,
+      description: `Enviadas ${result.sent} · insertadas ${result.ingest?.inserted ?? 0} · omitidas ${result.ingest?.skipped ?? 0}${result.filtered_out ? ` · filtradas ${result.filtered_out}` : ''}${result.ingest?.blocked ? ` · bloqueadas ${result.ingest.blocked}` : ''}`,
       color: 'success'
     })
     await queryCache.invalidateQueries({ key: ['jobs'] })

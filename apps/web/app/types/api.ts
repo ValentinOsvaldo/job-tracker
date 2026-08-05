@@ -188,6 +188,24 @@ export interface CvUploadResult {
   uploaded_at: string
 }
 
+export interface BlockedCompany {
+  id: string
+  company: string
+  reason: string | null
+  created_at: string
+}
+
+export interface CreateBlockedCompanyInput {
+  company: string
+  reason?: string | null
+  purge_existing?: boolean
+}
+
+export interface CreateBlockedCompanyResult {
+  blocked_company: BlockedCompany
+  purged: number
+}
+
 export interface ScrapeTriggerResult {
   ok: boolean
   sent: number
@@ -197,6 +215,7 @@ export interface ScrapeTriggerResult {
     inserted: number
     skipped: number
     rejected: number
+    blocked?: number
   }
   params?: {
     sites: string[]

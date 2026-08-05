@@ -31,6 +31,11 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { PublicUser } from '../users/types/public-user.type';
 import { UserRole } from '../users/enums/user-role.enum';
 import { BulkDeleteJobsDto } from './dto/bulk-delete-jobs.dto';
+import {
+  BlockedCompanyResponseDto,
+  CreateBlockedCompanyDto,
+  CreateBlockedCompanyResultDto,
+} from './dto/blocked-company.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
 import {
@@ -254,6 +259,44 @@ export class JobsController {
   @ApiResponse({ status: 403, description: 'Admin role required' })
   scanRelevance() {
     return this.jobAnalysesService.scanRelevance();
+  }
+
+  @Get('blocked-companies')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'List blocked companies' })
+  @ApiResponse({ status: 200, type: [BlockedCompanyResponseDto] })
+  listBlockedCompanies() {
+    return this.jobsService.listBlockedCompanies();
+  }
+
+  @Post('blocked-companies')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({
+    summary: 'Block a company (admin only)',
+    description:
+      'Prevents future scraped jobs from this company from being ingested and hides any already-scraped ones. Optionally purges existing matches.',
+  })
+  @ApiBody({ type: CreateBlockedCompanyDto })
+  @ApiResponse({ status: 200, type: CreateBlockedCompanyResultDto })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  createBlockedCompany(@Body() body: CreateBlockedCompanyDto) {
+    return this.jobsService.createBlockedCompany(body);
+  }
+
+  @Delete('blocked-companies/:id')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Unblock a company (admin only)' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, description: 'Deleted' })
+  @ApiResponse({ status: 403, description: 'Admin role required' })
+  @ApiResponse({ status: 404, description: 'Blocked company not found' })
+  async removeBlockedCompany(@Param('id', ParseUUIDPipe) id: string) {
+    await this.jobsService.removeBlockedCompany(id);
+    return { ok: true };
   }
 
   @Get(':id')

@@ -15,6 +15,8 @@ import {
   extractKeywordStats,
   toSkillStats,
 } from './utils/keyword-extraction';
+import { aggregateJobsByDay, aggregateWorkModes } from './utils/job-stats';
+import { aggregateLocations } from './utils/location-aggregation';
 
 interface CachedTrendsInsights {
   result: MarketTrendsAiResult;
@@ -60,6 +62,9 @@ export class MarketTrendsService {
       await this.aggregateSkills('missing_skills'),
       limit,
     );
+    const locations = aggregateLocations(jobs);
+    const byWorkMode = aggregateWorkModes(jobs);
+    const jobsByDay = aggregateJobsByDay(jobs, periodDays);
 
     if (jobs.length === 0) {
       return {
@@ -69,6 +74,9 @@ export class MarketTrendsService {
         top_keywords: [],
         top_demanded_skills: topDemandedSkills,
         top_missing_skills: topMissingSkills,
+        locations,
+        by_work_mode: byWorkMode,
+        jobs_by_day: jobsByDay,
         ai_insights: null,
         generated_at: new Date().toISOString(),
         ai_cached: false,
@@ -115,6 +123,9 @@ export class MarketTrendsService {
       top_keywords: topKeywords,
       top_demanded_skills: topDemandedSkills,
       top_missing_skills: topMissingSkills,
+      locations,
+      by_work_mode: byWorkMode,
+      jobs_by_day: jobsByDay,
       ai_insights: aiInsights,
       generated_at: new Date().toISOString(),
       ai_cached: aiCached,

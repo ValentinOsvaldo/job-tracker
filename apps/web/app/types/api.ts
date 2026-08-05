@@ -234,6 +234,32 @@ export interface KeywordStat {
   source?: 'jobs' | 'analyses'
 }
 
+export interface GeoCount {
+  label: string
+  count: number
+  lat: number | null
+  lon: number | null
+  iso3?: string | null
+}
+
+export interface LocationInsights {
+  by_country: GeoCount[]
+  mexico_by_region: GeoCount[]
+  mexico_by_city: GeoCount[]
+  total_with_location: number
+  total_mexico: number
+}
+
+export interface WorkModeCount {
+  work_mode: WorkMode
+  count: number
+}
+
+export interface DayCount {
+  date: string
+  count: number
+}
+
 export interface MarketTrendsResponse {
   period_days: number
   total_jobs: number
@@ -241,6 +267,9 @@ export interface MarketTrendsResponse {
   top_keywords: KeywordStat[]
   top_demanded_skills: KeywordStat[]
   top_missing_skills: KeywordStat[]
+  locations: LocationInsights
+  by_work_mode: WorkModeCount[]
+  jobs_by_day: DayCount[]
   ai_insights: {
     summary: string
     hot_technologies: string[]

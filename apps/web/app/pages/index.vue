@@ -165,9 +165,17 @@ async function onScrape() {
     </section>
 
     <section class="space-y-4">
-      <h2 class="text-lg font-semibold text-highlighted">
-        Market trends
-      </h2>
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 class="text-lg font-semibold text-highlighted">
+          Market trends
+        </h2>
+        <p
+          v-if="trends"
+          class="text-xs text-muted tabular-nums"
+        >
+          {{ trends.total_jobs }} ofertas · {{ trends.jobs_with_description }} con descripción · últimos {{ trends.period_days }} días
+        </p>
+      </div>
 
       <div
         v-if="trendsPending"
@@ -181,58 +189,23 @@ async function onScrape() {
 
       <div
         v-else-if="trends"
-        class="grid gap-4 md:grid-cols-3"
+        class="space-y-4"
       >
-        <UCard>
-          <p class="text-xs text-muted">
-            Jobs ({{ trends.period_days }}d)
-          </p>
-          <p class="text-2xl font-semibold text-highlighted mt-1">
-            {{ trends.total_jobs }}
-          </p>
-          <p class="text-xs text-muted mt-1">
-            {{ trends.jobs_with_description }} with description
-          </p>
-        </UCard>
+        <DashboardLocationMap :locations="trends.locations" />
 
-        <UCard>
-          <p class="text-xs text-muted mb-2">
-            Top demanded skills
-          </p>
-          <div class="flex flex-wrap gap-1.5">
-            <UBadge
-              v-for="item in trends.top_demanded_skills.slice(0, 8)"
-              :key="item.term"
-              color="primary"
-              variant="subtle"
-              size="sm"
-            >
-              {{ item.term }} ({{ item.count }})
-            </UBadge>
-            <span
-              v-if="!trends.top_demanded_skills.length"
-              class="text-sm text-muted"
-            >No data yet</span>
+        <div class="grid gap-4 lg:grid-cols-3">
+          <div class="lg:col-span-2">
+            <DashboardTimelineChart :days="trends.jobs_by_day" />
           </div>
-        </UCard>
+          <DashboardWorkModeChart :modes="trends.by_work_mode" />
+        </div>
 
-        <UCard>
-          <p class="text-xs text-muted mb-2">
-            AI insights
-          </p>
-          <p
-            v-if="trends.ai_insights?.summary"
-            class="text-sm text-default"
-          >
-            {{ trends.ai_insights.summary }}
-          </p>
-          <p
-            v-else
-            class="text-sm text-muted"
-          >
-            Insights will appear once enough jobs are analyzed.
-          </p>
-        </UCard>
+        <div class="grid gap-4 lg:grid-cols-3">
+          <div class="lg:col-span-2">
+            <DashboardSkillsChart :skills="trends.top_demanded_skills" />
+          </div>
+          <DashboardAiInsights :insights="trends.ai_insights" />
+        </div>
       </div>
     </section>
   </div>

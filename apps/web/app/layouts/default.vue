@@ -39,7 +39,6 @@ const links = computed<NavigationMenuItem[]>(() => [
     label: 'ATS check',
     to: '/ats-check',
     icon: 'i-lucide-scan-search',
-    badge: 'Preview',
     active: route.path.startsWith('/ats-check')
   },
   {

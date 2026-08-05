@@ -1,4 +1,5 @@
 import type {
+  AtsCheckResponse,
   BlockedCompany,
   BulkDeleteResult,
   ChangePasswordInput,
@@ -90,6 +91,11 @@ export function useApiClient() {
         query: cleanQuery({ refresh })
       })
     }
+  }
+
+  const atsCheckQuery = {
+    key: ['ats-check'] as const,
+    query: () => requestFetch<AtsCheckResponse>('/api/users/me/ats-check')
   }
 
   function createProfile(body: CreateProfileInput) {
@@ -200,6 +206,7 @@ export function useApiClient() {
     usersQuery,
     blockedCompaniesQuery,
     cvAnalysisQuery,
+    atsCheckQuery,
     createProfile,
     updateProfile,
     deleteProfile,

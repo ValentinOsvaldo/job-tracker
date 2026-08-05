@@ -648,10 +648,20 @@ export class JobsService {
         // Rank by the job's actual posting date when the site provided one;
         // fall back to when we scraped it for postings with no date_posted,
         // so those don't all clump together instead of reflecting recency.
-        qb.orderBy(
+        //
+        // Selected under an alias (instead of passed as a raw expression to
+        // orderBy) because TypeORM's order-by-with-select-joins path splits
+        // any order criteria containing a "." to resolve it as an
+        // alias.column reference — which mis-parses a raw
+        // "COALESCE(job.foo, job.bar)" string and throws "alias not found".
+        // That path only kicks in when a join (e.g. the status filters
+        // above) is combined with pagination, which is why this only
+        // surfaces for some filter combinations.
+        qb.addSelect(
           'COALESCE(job.date_posted::timestamptz, job.scraped_at)',
-          'DESC',
+          'effective_posted_at',
         );
+        qb.orderBy('effective_posted_at', 'DESC');
     }
   }
 

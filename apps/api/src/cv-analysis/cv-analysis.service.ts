@@ -9,7 +9,16 @@ import { KeywordStat } from '../ai/types/keyword-stat.type';
 import { JobAnalysis } from '../job-analyses/entities/job-analysis.entity';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
+import { AtsCheckResponse } from './types/ats-check-response.type';
 import { CvAnalysisResponse } from './types/cv-analysis-response.type';
+import {
+  buildAtsRecommendations,
+  checkContactInfo,
+  checkFormatQuality,
+  checkKeywordCoverage,
+  checkStandardSections,
+  scoreAtsChecks,
+} from './utils/ats-checks';
 
 interface CachedCvAnalysis {
   result: CvAnalysisAiResult;
@@ -86,6 +95,41 @@ export class CvAnalysisService {
     });
 
     return this.toResponse(result, fitStats.count, false);
+  }
+
+  /** Deterministic ATS compatibility check — no AI call. Reuses the same
+   * cv_text and matched/missing skill aggregates as the CV score & market
+   * fit analysis above, just scored against mechanical ATS heuristics
+   * instead of an LLM opinion. */
+  async getAtsCheck(userId: string): Promise<AtsCheckResponse> {
+    const user = await this.usersRepository.findOne({ where: { id: userId } });
+
+    if (!user?.cv_text) {
+      throw new BadRequestException(
+        'Upload a CV before requesting an ATS check',
+      );
+    }
+
+    const [strengths, gaps, fitStats] = await Promise.all([
+      this.aggregateSkills(userId, 'matched_skills'),
+      this.aggregateSkills(userId, 'missing_skills'),
+      this.getFitStats(userId),
+    ]);
+
+    const checks = [
+      checkFormatQuality(user.cv_text),
+      checkContactInfo(user.cv_text),
+      checkStandardSections(user.cv_text),
+      checkKeywordCoverage(strengths.length, gaps.length),
+    ];
+
+    return {
+      score: scoreAtsChecks(checks),
+      checks,
+      recommendations: buildAtsRecommendations(checks),
+      analyzed_jobs_count: fitStats.count,
+      generated_at: new Date().toISOString(),
+    };
   }
 
   private toResponse(

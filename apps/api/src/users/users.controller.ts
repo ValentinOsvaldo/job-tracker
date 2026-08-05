@@ -27,6 +27,7 @@ import {
 import { OkResponseDto } from '../common/dto/ok-response.dto';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CvAnalysisService } from '../cv-analysis/cv-analysis.service';
+import { AtsCheckResponseDto } from '../cv-analysis/dto/ats-check-response.dto';
 import { CvAnalysisQueryDto } from '../cv-analysis/dto/cv-analysis-query.dto';
 import { CvAnalysisResponseDto } from '../cv-analysis/dto/cv-analysis-response.dto';
 import { PublicUser } from './types/public-user.type';
@@ -61,6 +62,19 @@ export class UsersController {
     @Query() query: CvAnalysisQueryDto,
   ) {
     return this.cvAnalysisService.getCvAnalysis(req.user.id, query.refresh);
+  }
+
+  @Get('me/ats-check')
+  @ApiOperation({
+    summary:
+      "Get a deterministic ATS compatibility check for the current user's CV",
+    description:
+      'Reuses the same CV text and matched/missing skill aggregates as the CV score & market fit analysis, scored against mechanical ATS heuristics (no AI call).',
+  })
+  @ApiResponse({ status: 200, type: AtsCheckResponseDto })
+  @ApiResponse({ status: 400, description: 'No CV uploaded yet' })
+  getAtsCheck(@Req() req: { user: PublicUser }) {
+    return this.cvAnalysisService.getAtsCheck(req.user.id);
   }
 
   @Get()

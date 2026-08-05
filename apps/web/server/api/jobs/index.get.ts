@@ -16,6 +16,7 @@ export default defineEventHandler(async (event) => {
       relevance: query.relevance as string | undefined,
       location_city: query.location_city as string | undefined,
       location_country: query.location_country as string | undefined,
+      added_within: query.added_within as string | undefined,
       sort_by: query.sort_by as string | undefined,
       sort_dir: query.sort_dir as string | undefined,
       page: query.page !== undefined ? Number(query.page) : undefined,

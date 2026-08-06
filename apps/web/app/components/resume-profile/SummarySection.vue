@@ -38,7 +38,7 @@ function removeVariant(index: number) {
         Resumen (variantes)
       </h2>
       <p class="text-xs text-muted mt-0.5">
-        Definí una o más variantes; la IA elige la más adecuada según cada vacante.
+        Define una o más variantes; la IA elige la más adecuada según cada vacante.
       </p>
     </template>
 

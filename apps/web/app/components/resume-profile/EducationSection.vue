@@ -29,7 +29,7 @@ function removeEntry(index: number) {
           Educación
         </h2>
         <p class="text-xs text-muted">
-          Opcional — si no la agregás, nunca se inventa en el CV generado.
+          Opcional — si no la agregas, nunca se inventa en el CV generado.
         </p>
       </div>
     </template>

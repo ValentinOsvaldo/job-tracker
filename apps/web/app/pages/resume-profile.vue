@@ -108,8 +108,8 @@ async function onSave() {
         v-if="!profile"
         color="neutral"
         variant="subtle"
-        title="Todavía no tenés un perfil de CV"
-        description="Completá las secciones de abajo y guardá para poder generar CVs adaptados por vacante."
+        title="Todavía no tienes un perfil de CV"
+        description="Completa las secciones de abajo y guarda para poder generar CVs adaptados por vacante."
       />
 
       <PersonalInfoSection v-model="state.personal_info" />

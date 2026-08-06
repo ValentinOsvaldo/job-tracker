@@ -8,6 +8,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { ParseBoolean } from '../../common/transforms/parse-boolean.transform';
 import { JobSource } from '../../jobs/enums/job-source.enum';
 
 export class TrendsQueryDto {
@@ -34,7 +35,7 @@ export class TrendsQueryDto {
 
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Type(() => Boolean)
+  @ParseBoolean()
   @IsBoolean()
   refresh?: boolean = false;
 }

@@ -12,6 +12,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { ParseBoolean } from '../../common/transforms/parse-boolean.transform';
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
 import { JobRelevance } from '../enums/job-relevance.enum';
@@ -83,7 +84,7 @@ export class ListJobsQueryDto {
 
   @ApiPropertyOptional({ description: 'Filter to jobs the user applied to' })
   @IsOptional()
-  @Type(() => Boolean)
+  @ParseBoolean()
   @IsBoolean()
   applied?: boolean;
 
@@ -91,7 +92,7 @@ export class ListJobsQueryDto {
     description: 'Filter to jobs the user was rejected from',
   })
   @IsOptional()
-  @Type(() => Boolean)
+  @ParseBoolean()
   @IsBoolean()
   rejected?: boolean;
 

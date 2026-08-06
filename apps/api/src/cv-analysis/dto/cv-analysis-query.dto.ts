@@ -1,11 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
 import { IsBoolean, IsOptional } from 'class-validator';
+import { ParseBoolean } from '../../common/transforms/parse-boolean.transform';
 
 export class CvAnalysisQueryDto {
   @ApiPropertyOptional({ default: false })
   @IsOptional()
-  @Type(() => Boolean)
+  @ParseBoolean()
   @IsBoolean()
   refresh?: boolean = false;
 }

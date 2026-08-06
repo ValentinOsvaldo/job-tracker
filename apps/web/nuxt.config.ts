@@ -14,11 +14,17 @@ export default defineNuxtConfig({
     '@vite-pwa/nuxt'
   ],
 
+  ssr: true,
+
   devtools: {
     enabled: true
   },
 
   css: ['~/assets/css/main.css'],
+
+  routeRules: {
+    '/**': { ssr: true }
+  },
 
   runtimeConfig: {
     apiBaseUrl: 'http://localhost:3000',
@@ -65,7 +71,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/offline',
+      navigateFallback: undefined, // Deshabilitado para SSR
       navigateFallbackDenylist: [/^\/api\//],
       globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       // Never cache API responses — job/profile data must always come from

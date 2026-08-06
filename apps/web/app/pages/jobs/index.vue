@@ -304,6 +304,15 @@ async function onBlockCompany(job: { company: string | null }) {
   }
 }
 
+async function copyEmail(email: string) {
+  try {
+    await navigator.clipboard.writeText(email)
+    toast.add({ title: `Copiado: ${email}`, color: 'success' })
+  } catch {
+    toast.add({ title: 'No se pudo copiar', color: 'error' })
+  }
+}
+
 async function onDelete(job: { id: string, title: string }) {
   if (!confirm(`Delete “${job.title}”? This can't be undone.`)) return
   deletingId.value = job.id
@@ -489,6 +498,30 @@ const baseColumns = [
     cell: ({ row }: { row: { original: { scraped_at: string } } }) => {
       const text = formatRelativeDate(row.original.scraped_at)
       return h(UTooltip, { text: formatDate(row.original.scraped_at) }, () => h('span', { class: 'whitespace-nowrap' }, text))
+    }
+  },
+  {
+    id: 'email',
+    header: 'Email',
+    cell: ({ row }: { row: { original: { description: string | null } } }) => {
+      const emails = extractEmails(row.original.description)
+      if (emails.length === 0) {
+        return h('span', { class: 'text-muted' }, '—')
+      }
+      return h(UTooltip, { text: emails.join(', ') }, () =>
+        h('div', { class: 'flex items-center gap-1' }, [
+          h(UButton, {
+            'size': 'xs',
+            'color': 'neutral',
+            'variant': 'subtle',
+            'icon': 'i-lucide-mail',
+            'aria-label': `Copiar ${emails[0]}`,
+            'onClick': () => copyEmail(emails[0] as string)
+          }),
+          emails.length > 1
+            ? h(UBadge, { color: 'neutral', variant: 'subtle', size: 'sm' }, () => `+${emails.length - 1}`)
+            : null
+        ]))
     }
   },
   {

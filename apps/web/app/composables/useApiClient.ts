@@ -14,6 +14,7 @@ import type {
   JobsListResponse,
   ListJobsQuery,
   MarketTrendsResponse,
+  PipelineStats,
   PublicUser,
   RegenerateAnalysesResult,
   RelevanceScanResult,
@@ -82,6 +83,11 @@ export function useApiClient() {
   const blockedCompaniesQuery = {
     key: ['blocked-companies'] as const,
     query: () => requestFetch<BlockedCompany[]>('/api/jobs/blocked-companies')
+  }
+
+  const pipelineStatsQuery = {
+    key: ['pipeline-stats'] as const,
+    query: () => requestFetch<PipelineStats>('/api/jobs/pipeline-stats')
   }
 
   function cvAnalysisQuery(refresh = false) {
@@ -205,6 +211,7 @@ export function useApiClient() {
     meQuery,
     usersQuery,
     blockedCompaniesQuery,
+    pipelineStatsQuery,
     cvAnalysisQuery,
     atsCheckQuery,
     createProfile,

@@ -42,6 +42,14 @@ export class JobUserStatus {
   @Column({ type: 'boolean', default: false })
   rejected: boolean;
 
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
+  applied_at: Date | null;
+
+  @ApiProperty({ type: String, format: 'date-time', nullable: true })
+  @Column({ type: 'timestamptz', nullable: true })
+  rejected_at: Date | null;
+
   @ManyToOne(() => User, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: User;

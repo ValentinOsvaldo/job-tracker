@@ -38,6 +38,7 @@ import {
 } from './dto/blocked-company.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { ListJobsQueryDto } from './dto/list-jobs-query.dto';
+import { PipelineStatsDto } from './dto/pipeline-stats.dto';
 import {
   BulkDeleteJobsResultDto,
   DeleteAllJobsResultDto,
@@ -102,6 +103,18 @@ export class JobsController {
   @ApiResponse({ status: 200, type: MarketTrendsResponseDto })
   getTrends(@Query() query: TrendsQueryDto) {
     return this.marketTrendsService.getTrends(query);
+  }
+
+  @Get('pipeline-stats')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Get application pipeline stats for the current user',
+    description:
+      'Counts of applied jobs still pending vs. rejected, and the average number of days between applying and being rejected.',
+  })
+  @ApiResponse({ status: 200, type: PipelineStatsDto })
+  getPipelineStats(@Req() req: { user: PublicUser }) {
+    return this.jobsService.getPipelineStats(req.user.id);
   }
 
   @Get()

@@ -21,6 +21,11 @@ const { data: trends, isPending: trendsPending, refetch: refetchTrends } = useQu
   query: () => api.trendsQuery({ days: 30, limit: 10 }).query()
 })
 
+const { data: pipelineStats, isPending: pipelineStatsPending, refetch: refetchPipelineStats } = useQuery({
+  key: () => ['pipeline-stats'],
+  query: () => api.pipelineStatsQuery.query()
+})
+
 const activeProfiles = computed(() =>
   (profiles.value ?? []).filter(p => p.is_active)
 )
@@ -79,6 +84,7 @@ async function onScrape() {
     await queryCache.invalidateQueries({ key: ['trends'] })
     await loadTopJobs(activeProfiles.value)
     await refetchTrends()
+    await refetchPipelineStats()
   } catch (err: unknown) {
     toast.add({
       title: 'No se pudo actualizar',
@@ -112,6 +118,20 @@ async function onScrape() {
         Actualizar ofertas
       </UButton>
     </div>
+
+    <section
+      v-if="pipelineStatsPending || pipelineStats"
+      class="space-y-4"
+    >
+      <USkeleton
+        v-if="pipelineStatsPending"
+        class="h-[140px] w-full"
+      />
+      <DashboardPipelineStats
+        v-else-if="pipelineStats"
+        :stats="pipelineStats"
+      />
+    </section>
 
     <section class="space-y-4">
       <div class="flex items-center justify-between gap-3">

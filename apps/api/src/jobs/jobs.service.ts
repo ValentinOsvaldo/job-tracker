@@ -23,6 +23,7 @@ import { AddedWithin } from './enums/added-within.enum';
 import { CreateBlockedCompanyDto } from './dto/blocked-company.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
 import { IngestResult, PaginatedJobs } from './dto/jobs-response.dto';
+import { PipelineStatsDto } from './dto/pipeline-stats.dto';
 import { ScrapeTriggerResultDto } from './dto/scrape-trigger-result.dto';
 import { BlockedCompany } from './entities/blocked-company.entity';
 import { Job } from './entities/job.entity';
@@ -331,11 +332,13 @@ export class JobsService {
     if ('interest' in patch) {
       row.interest = patch.interest ?? null;
     }
-    if (patch.applied !== undefined) {
+    if (patch.applied !== undefined && patch.applied !== row.applied) {
       row.applied = patch.applied;
+      row.applied_at = patch.applied ? new Date() : null;
     }
-    if (patch.rejected !== undefined) {
+    if (patch.rejected !== undefined && patch.rejected !== row.rejected) {
       row.rejected = patch.rejected;
+      row.rejected_at = patch.rejected ? new Date() : null;
     }
 
     const saved = await this.jobUserStatusRepository.save(row);
@@ -345,6 +348,42 @@ export class JobsService {
       interest: saved.interest,
       applied: saved.applied,
       rejected: saved.rejected,
+    };
+  }
+
+  async getPipelineStats(userId: string): Promise<PipelineStatsDto> {
+    const rows = await this.jobUserStatusRepository.find({
+      where: { user_id: userId, applied: true },
+      select: { rejected: true, applied_at: true, rejected_at: true },
+    });
+
+    const totalApplied = rows.length;
+    const rejectedRows = rows.filter((row) => row.rejected);
+    const pending = totalApplied - rejectedRows.length;
+
+    const daysToReject = rejectedRows
+      .filter((row) => row.applied_at && row.rejected_at)
+      .map(
+        (row) =>
+          (row.rejected_at!.getTime() - row.applied_at!.getTime()) /
+          (24 * 60 * 60 * 1000),
+      )
+      .filter((days) => days >= 0);
+
+    const avgDaysToReject =
+      daysToReject.length > 0
+        ? daysToReject.reduce((sum, days) => sum + days, 0) /
+          daysToReject.length
+        : null;
+
+    return {
+      pending,
+      rejected: rejectedRows.length,
+      total_applied: totalApplied,
+      rejection_rate:
+        totalApplied > 0 ? rejectedRows.length / totalApplied : null,
+      avg_days_to_reject:
+        avgDaysToReject !== null ? Math.round(avgDaysToReject * 10) / 10 : null,
     };
   }
 

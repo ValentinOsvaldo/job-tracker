@@ -154,6 +154,14 @@ export interface UpdateJobStatusInput {
   rejected?: boolean
 }
 
+export interface PipelineStats {
+  pending: number
+  rejected: number
+  total_applied: number
+  rejection_rate: number | null
+  avg_days_to_reject: number | null
+}
+
 export interface JobStatusResponse {
   job_id: string
   interest: InterestStatus | null

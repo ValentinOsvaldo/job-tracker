@@ -14,17 +14,11 @@ export default defineNuxtConfig({
     '@vite-pwa/nuxt'
   ],
 
-  ssr: true,
-
   devtools: {
     enabled: true
   },
 
   css: ['~/assets/css/main.css'],
-
-  routeRules: {
-    '/**': { ssr: true }
-  },
 
   runtimeConfig: {
     apiBaseUrl: 'http://localhost:3000',

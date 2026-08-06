@@ -98,7 +98,7 @@ async function onSave() {
     </div>
 
     <UAlert
-      v-if="error && (error as { statusCode?: number }).statusCode !== 404"
+      v-if="error"
       color="error"
       title="No se pudo cargar tu perfil de CV"
     />

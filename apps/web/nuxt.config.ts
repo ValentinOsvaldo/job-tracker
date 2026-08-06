@@ -65,7 +65,7 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: undefined, // Deshabilitado para SSR
+      navigateFallback: '/offline',
       navigateFallbackDenylist: [/^\/api\//],
       globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       // Never cache API responses — job/profile data must always come from

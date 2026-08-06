@@ -96,7 +96,7 @@ export function useApiClient() {
 
   const resumeProfileQuery = {
     key: ['resume-profile'] as const,
-    query: () => requestFetch<ResumeProfile>('/api/users/me/resume-profile')
+    query: () => requestFetch<ResumeProfile | null>('/api/users/me/resume-profile')
   }
 
   function updateResumeProfile(body: UpsertResumeProfileInput) {

@@ -61,10 +61,13 @@ export class UsersController {
     description:
       'Used to generate AI-tailored resumes per job application. Distinct from the plain-text CV used for scoring/ATS check.',
   })
-  @ApiResponse({ status: 200, type: ResumeProfile })
-  @ApiResponse({ status: 404, description: 'No resume profile created yet' })
+  @ApiResponse({
+    status: 200,
+    type: ResumeProfile,
+    description: 'Null when the user has not created a resume profile yet',
+  })
   getResumeProfile(@Req() req: { user: PublicUser }) {
-    return this.resumeProfileService.findByUser(req.user.id);
+    return this.resumeProfileService.findByUserOrNull(req.user.id);
   }
 
   @Put('me/resume-profile')

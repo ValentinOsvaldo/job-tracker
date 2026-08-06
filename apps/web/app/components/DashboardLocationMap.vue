@@ -86,7 +86,7 @@ const totalLabel = computed(() => {
 </script>
 
 <template>
-  <UCard :ui="{ body: 'p-0 sm:p-0' }">
+  <UCard :ui="{ root: 'h-full flex flex-col', body: 'p-0 sm:p-0 flex-1 min-h-0 flex flex-col' }">
     <template #header>
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -108,7 +108,7 @@ const totalLabel = computed(() => {
 
     <div
       v-if="!activeList.length"
-      class="flex flex-col items-center justify-center gap-1 py-16 text-center"
+      class="flex-1 flex flex-col items-center justify-center gap-1 py-16 text-center"
     >
       <UIcon
         name="i-lucide-map-pin-off"
@@ -121,13 +121,13 @@ const totalLabel = computed(() => {
 
     <div
       v-else
-      class="grid lg:grid-cols-[1fr_260px]"
+      class="grid lg:grid-cols-[1fr_260px] flex-1 min-h-0"
     >
       <ClientOnly>
         <div
           v-if="geocoded.length"
           ref="mapWrapperRef"
-          class="p-2 sm:p-4"
+          class="p-2 sm:p-4 h-full min-h-[220px]"
         >
           <DottedMap
             v-if="view === 'world'"
@@ -136,7 +136,6 @@ const totalLabel = computed(() => {
             region-name="world"
             :show-controls="false"
             :dot-size="0.34"
-            max-height="150px"
           />
           <DottedMap
             v-else
@@ -146,18 +145,17 @@ const totalLabel = computed(() => {
             :region="mexicoBounds"
             :show-controls="false"
             :dot-size="0.6"
-            max-height="150px"
           />
         </div>
         <div
           v-else
-          class="flex items-center justify-center h-[150px] text-sm text-muted px-4 text-center"
+          class="flex items-center justify-center h-full min-h-[220px] text-sm text-muted px-4 text-center"
         >
           No se pudieron ubicar estas ofertas en el mapa, pero aquí está el desglose.
         </div>
         <template #fallback>
-          <div class="p-4">
-            <USkeleton class="h-[150px] w-full rounded-lg" />
+          <div class="p-4 h-full min-h-[220px]">
+            <USkeleton class="h-full min-h-[220px] w-full rounded-lg" />
           </div>
         </template>
       </ClientOnly>

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobAnalysesModule } from '../job-analyses/job-analyses.module';
 import { MarketTrendsModule } from '../market-trends/market-trends.module';
 import { SearchProfile } from '../profiles/entities/search-profile.entity';
+import { ResumeModule } from '../resume/resume.module';
 import { User } from '../users/entities/user.entity';
 import { Job } from './entities/job.entity';
 import { JobUserStatus } from './entities/job-user-status.entity';
@@ -21,6 +22,7 @@ import { JobsService } from './jobs.service';
     ]),
     JobAnalysesModule,
     MarketTrendsModule,
+    ResumeModule,
   ],
   controllers: [JobsController],
   providers: [JobsService],

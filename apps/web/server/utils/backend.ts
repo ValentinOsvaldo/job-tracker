@@ -97,6 +97,7 @@ export async function backendFetch<T>(
     headers?: Record<string, string>
     requireAuth?: boolean
     timeout?: number
+    responseType?: 'json' | 'arrayBuffer'
   } = {}
 ): Promise<T> {
   const {
@@ -105,7 +106,8 @@ export async function backendFetch<T>(
     body,
     query,
     headers = {},
-    timeout
+    timeout,
+    responseType
   } = options
   const url = `${getApiBaseUrl()}${path.startsWith('/') ? path : `/${path}`}`
 
@@ -117,6 +119,7 @@ export async function backendFetch<T>(
 
     return $fetch<T>(url, {
       method,
+      ...(responseType ? { responseType } : {}),
       body,
       query,
       headers: requestHeaders,

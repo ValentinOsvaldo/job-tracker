@@ -36,6 +36,12 @@ const links = computed<NavigationMenuItem[]>(() => [
     active: route.path.startsWith('/cv')
   },
   {
+    label: 'Perfil de CV',
+    to: '/resume-profile',
+    icon: 'i-lucide-file-user',
+    active: route.path.startsWith('/resume-profile')
+  },
+  {
     label: 'ATS check',
     to: '/ats-check',
     icon: 'i-lucide-scan-search',

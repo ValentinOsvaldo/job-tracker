@@ -11,7 +11,10 @@ import {
   Post,
   Query,
   Req,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -55,6 +58,10 @@ import {
 import { Job } from './entities/job.entity';
 import { JobsService } from './jobs.service';
 import { JobsListQuery } from './types/jobs-list-query.type';
+import { ValidateTailoredResumeDto } from '../resume/dto/tailored-resume/validate-tailored-resume.dto';
+import { TailoredResume } from '../resume/entities/tailored-resume.entity';
+import { ResumeTemplateService } from '../resume/services/resume-template.service';
+import { TailorResumeService } from '../resume/services/tailor-resume.service';
 
 @ApiTags('jobs')
 @Controller('jobs')
@@ -63,6 +70,8 @@ export class JobsController {
     private readonly jobsService: JobsService,
     private readonly jobAnalysesService: JobAnalysesService,
     private readonly marketTrendsService: MarketTrendsService,
+    private readonly tailorResumeService: TailorResumeService,
+    private readonly resumeTemplateService: ResumeTemplateService,
   ) {}
 
   @Public()
@@ -310,6 +319,101 @@ export class JobsController {
   async removeBlockedCompany(@Param('id', ParseUUIDPipe) id: string) {
     await this.jobsService.removeBlockedCompany(id);
     return { ok: true };
+  }
+
+  @Post(':id/tailor-resume')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Generate an AI-tailored resume for this job application',
+    description:
+      'Requires the job to be marked as applied by the current user and a resume profile to already exist. Overwrites any previously generated tailored resume for this job.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: TailoredResume })
+  @ApiResponse({ status: 403, description: 'Job was not marked as applied' })
+  @ApiResponse({
+    status: 404,
+    description: 'Job not found, or no resume profile created yet',
+  })
+  generateTailoredResume(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tailorResumeService.generate(req.user.id, id);
+  }
+
+  @Get(':id/tailor-resume')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Get the saved tailored resume for this job' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiResponse({ status: 200, type: TailoredResume })
+  @ApiResponse({
+    status: 404,
+    description: 'Job not found, or no tailored resume generated yet',
+  })
+  getTailoredResume(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+  ) {
+    return this.tailorResumeService.findSaved(req.user.id, id);
+  }
+
+  @Post(':id/tailor-resume/validate')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary: 'Re-check (and optionally save) edits to a tailored resume',
+    description:
+      'Send generated_content to persist a hand-edited version first; omit it to just re-run the needs_review check against what is currently saved.',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: ValidateTailoredResumeDto })
+  @ApiResponse({ status: 200, type: TailoredResume })
+  @ApiResponse({
+    status: 404,
+    description: 'Job not found, or no tailored resume generated yet',
+  })
+  validateTailoredResume(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: ValidateTailoredResumeDto,
+  ) {
+    return this.tailorResumeService.validate(
+      req.user.id,
+      id,
+      body.generated_content,
+    );
+  }
+
+  @Get(':id/tailor-resume/pdf')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Download the tailored resume as a PDF' })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiQuery({ name: 'template', required: false, example: 'classic' })
+  @ApiResponse({ status: 200, description: 'application/pdf stream' })
+  @ApiResponse({
+    status: 404,
+    description: 'Job not found, or no tailored resume generated yet',
+  })
+  async downloadTailoredResumePdf(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('template') template = 'classic',
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<StreamableFile> {
+    const saved = await this.tailorResumeService.findSaved(req.user.id, id);
+    const buffer = await this.resumeTemplateService.renderPdf(
+      template,
+      saved.generated_content,
+    );
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="cv-${id}.pdf"`,
+    });
+
+    return new StreamableFile(buffer);
   }
 
   @Get(':id')

@@ -18,6 +18,7 @@ import { AiModule } from './ai/ai.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobAnalysesModule } from './job-analyses/job-analyses.module';
 import { SeedModule } from './seed/seed.module';
+import { ResumeModule } from './resume/resume.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { SeedModule } from './seed/seed.module';
     JobAnalysesModule,
     AiModule,
     SeedModule,
+    ResumeModule,
   ],
   providers: [
     {

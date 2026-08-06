@@ -9,6 +9,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   UploadedFile,
@@ -30,6 +31,9 @@ import { CvAnalysisService } from '../cv-analysis/cv-analysis.service';
 import { AtsCheckResponseDto } from '../cv-analysis/dto/ats-check-response.dto';
 import { CvAnalysisQueryDto } from '../cv-analysis/dto/cv-analysis-query.dto';
 import { CvAnalysisResponseDto } from '../cv-analysis/dto/cv-analysis-response.dto';
+import { UpsertResumeProfileDto } from '../resume/dto/resume-profile/upsert-resume-profile.dto';
+import { ResumeProfile } from '../resume/entities/resume-profile.entity';
+import { ResumeProfileService } from '../resume/services/resume-profile.service';
 import { PublicUser } from './types/public-user.type';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -48,7 +52,35 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly cvAnalysisService: CvAnalysisService,
+    private readonly resumeProfileService: ResumeProfileService,
   ) {}
+
+  @Get('me/resume-profile')
+  @ApiOperation({
+    summary: "Get the current user's structured resume profile",
+    description:
+      'Used to generate AI-tailored resumes per job application. Distinct from the plain-text CV used for scoring/ATS check.',
+  })
+  @ApiResponse({ status: 200, type: ResumeProfile })
+  @ApiResponse({ status: 404, description: 'No resume profile created yet' })
+  getResumeProfile(@Req() req: { user: PublicUser }) {
+    return this.resumeProfileService.findByUser(req.user.id);
+  }
+
+  @Put('me/resume-profile')
+  @ApiOperation({
+    summary:
+      "Create or fully replace the current user's structured resume profile",
+  })
+  @ApiBody({ type: UpsertResumeProfileDto })
+  @ApiResponse({ status: 200, type: ResumeProfile })
+  @ApiResponse({ status: 400, description: 'Malformed resume profile payload' })
+  updateResumeProfile(
+    @Req() req: { user: PublicUser },
+    @Body() dto: UpsertResumeProfileDto,
+  ) {
+    return this.resumeProfileService.upsert(req.user.id, dto);
+  }
 
   @Get('me/cv-analysis')
   @ApiOperation({

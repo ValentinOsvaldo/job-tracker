@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { InterestStatus } from '~/types/api'
+import type { InterestStatus, TailoredResumeContent } from '~/types/api'
 
 definePageMeta({
   middleware: 'auth'
@@ -22,6 +22,53 @@ const { data: profiles } = useQuery({
 })
 
 const activeProfiles = computed(() => (profiles.value ?? []).filter(p => p.is_active))
+
+const { data: resumeProfile } = useQuery({
+  key: () => ['resume-profile'],
+  query: () => api.resumeProfileQuery.query()
+})
+
+const {
+  data: tailoredResume,
+  refetch: refetchTailoredResume
+} = useQuery({
+  key: () => ['tailor-resume', id.value],
+  query: () => api.tailorResumeQuery(id.value).query()
+})
+
+const generatingResume = ref(false)
+
+const generateResumeDisabledReason = computed(() => {
+  if (!resumeProfile.value) return 'Completa tu perfil de CV en /resume-profile primero'
+  if (!job.value?.user_applied) return 'Marca esta oferta como aplicada primero'
+  return null
+})
+
+async function onGenerateTailoredResume() {
+  generatingResume.value = true
+
+  try {
+    await api.generateTailoredResume(id.value)
+    toast.add({ title: 'CV adaptado generado', color: 'success' })
+    await refetchTailoredResume()
+  } catch (err: unknown) {
+    toast.add({
+      title: 'No se pudo generar el CV adaptado',
+      description: (err as { statusMessage?: string, data?: { message?: string } })?.statusMessage
+        || (err as { data?: { message?: string } })?.data?.message
+        || 'Intenta de nuevo en unos segundos',
+      color: 'error'
+    })
+  } finally {
+    generatingResume.value = false
+  }
+}
+
+function onTailoredResumeUpdated(content: TailoredResumeContent) {
+  if (tailoredResume.value) {
+    tailoredResume.value.generated_content = content
+  }
+}
 
 const regeneratingSummary = ref(false)
 const regeneratingProfileId = ref<string | null>(null)
@@ -191,6 +238,16 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
           >
             Regenerar TLDR
           </UButton>
+          <UTooltip :text="generateResumeDisabledReason ?? undefined">
+            <UButton
+              icon="i-lucide-file-user"
+              :loading="generatingResume"
+              :disabled="generatingResume || !!generateResumeDisabledReason"
+              @click="onGenerateTailoredResume"
+            >
+              Generar CV adaptado
+            </UButton>
+          </UTooltip>
           <span class="text-sm text-muted self-center">
             Salary:
             {{ formatSalary(job.salary_min, job.salary_max) }}
@@ -308,6 +365,13 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
           </template>
         </UCard>
       </div>
+
+      <TailoredResumeResult
+        v-if="tailoredResume"
+        :job-id="job.id"
+        :resume="tailoredResume.generated_content"
+        @updated="onTailoredResumeUpdated"
+      />
     </template>
   </div>
 </template>

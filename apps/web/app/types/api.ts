@@ -148,6 +148,131 @@ export interface ListJobsQuery {
   limit?: number
 }
 
+export type SkillLevel = 'beginner' | 'intermediate' | 'advanced' | 'expert'
+export type EvidenceConfidence = 'low' | 'medium' | 'high'
+
+export interface Link {
+  label: string
+  url: string
+}
+
+export interface PersonalInfo {
+  full_name: string
+  headline: string | null
+  email: string
+  phone: string | null
+  location: string | null
+  links: Link[]
+}
+
+/** Named summary variants the user maintains, e.g. { frontend_heavy: "...", fullstack_heavy: "..." } */
+export type SummaryVariants = Record<string, string>
+
+export interface Skill {
+  name: string
+  tags: string[]
+  level: SkillLevel
+}
+
+export interface Bullet {
+  id: string
+  text: string
+  tags: string[]
+}
+
+export interface ExperienceEntry {
+  company: string
+  role: string
+  period: string
+  location: string | null
+  bullets: Bullet[]
+}
+
+export interface SkillEvidenceItem {
+  id: string
+  context: string
+  raw_fact: string
+  impact: string | null
+  confidence: EvidenceConfidence
+}
+
+export interface Project {
+  id: string
+  name: string
+  description: string
+  tags: string[]
+  url: string | null
+}
+
+export interface Education {
+  institution: string
+  degree: string
+  period: string | null
+  location: string | null
+}
+
+export interface ResumeProfile {
+  id: string
+  user_id: string
+  personal_info: PersonalInfo
+  summary: SummaryVariants
+  skills: Skill[]
+  experience: ExperienceEntry[]
+  skill_evidence: SkillEvidenceItem[]
+  projects: Project[]
+  education: Education[] | null
+  created_at: string
+  updated_at: string
+}
+
+export type UpsertResumeProfileInput = Omit<ResumeProfile, 'id' | 'user_id' | 'created_at' | 'updated_at'>
+
+export interface TailoredBullet {
+  id: string
+  text: string
+  tags: string[]
+  relevance_score: number
+  source_bullet_id: string | null
+  source_evidence_id: string | null
+  needs_review: boolean
+}
+
+export interface TailoredExperienceEntry {
+  company: string
+  role: string
+  period: string
+  location: string | null
+  bullets: TailoredBullet[]
+}
+
+export interface TailoredProject {
+  id: string
+  name: string
+  description: string
+  tags: string[]
+  url: string | null
+  relevance_score: number
+  source_project_id: string
+}
+
+export interface TailoredResumeContent {
+  personal_info: PersonalInfo
+  summary_variant_used: string | null
+  summary: string
+  skills: Skill[]
+  experience: TailoredExperienceEntry[]
+  projects: TailoredProject[]
+  education: Education[] | null
+}
+
+export interface TailoredResume {
+  id: string
+  job_id: string
+  user_id: string
+  generated_content: TailoredResumeContent
+  created_at: string
+}
+
 export interface UpdateJobStatusInput {
   interest?: InterestStatus | null
   applied?: boolean

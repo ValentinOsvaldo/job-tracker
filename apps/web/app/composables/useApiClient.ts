@@ -18,13 +18,17 @@ import type {
   PublicUser,
   RegenerateAnalysesResult,
   RelevanceScanResult,
+  ResumeProfile,
   ScrapeTriggerResult,
   SearchProfile,
   SeedResult,
+  TailoredResume,
+  TailoredResumeContent,
   UpdateJobStatusInput,
   UpdateProfileInput,
   UpdateSelfInput,
-  UpdateUserInput
+  UpdateUserInput,
+  UpsertResumeProfileInput
 } from '~/types/api'
 
 function cleanQuery(query: Record<string, string | number | boolean | undefined | null>) {
@@ -88,6 +92,43 @@ export function useApiClient() {
   const pipelineStatsQuery = {
     key: ['pipeline-stats'] as const,
     query: () => requestFetch<PipelineStats>('/api/jobs/pipeline-stats')
+  }
+
+  const resumeProfileQuery = {
+    key: ['resume-profile'] as const,
+    query: () => requestFetch<ResumeProfile>('/api/users/me/resume-profile')
+  }
+
+  function updateResumeProfile(body: UpsertResumeProfileInput) {
+    return requestFetch<ResumeProfile>('/api/users/me/resume-profile', { method: 'PUT', body })
+  }
+
+  function tailorResumeQuery(jobId: string) {
+    return {
+      key: ['tailor-resume', jobId] as const,
+      query: () => requestFetch<TailoredResume>(`/api/jobs/${jobId}/tailor-resume`)
+    }
+  }
+
+  function generateTailoredResume(jobId: string) {
+    return requestFetch<TailoredResume>(`/api/jobs/${jobId}/tailor-resume`, {
+      method: 'POST',
+      timeout: 60_000
+    })
+  }
+
+  function validateTailoredResume(jobId: string, generatedContent?: TailoredResumeContent) {
+    return requestFetch<TailoredResume>(`/api/jobs/${jobId}/tailor-resume/validate`, {
+      method: 'POST',
+      body: generatedContent ? { generated_content: generatedContent } : {}
+    })
+  }
+
+  function downloadTailoredResumePdf(jobId: string, template = 'classic') {
+    return requestFetch<ArrayBuffer>(`/api/jobs/${jobId}/tailor-resume/pdf`, {
+      query: { template },
+      responseType: 'arrayBuffer'
+    })
   }
 
   function cvAnalysisQuery(refresh = false) {
@@ -212,6 +253,12 @@ export function useApiClient() {
     usersQuery,
     blockedCompaniesQuery,
     pipelineStatsQuery,
+    resumeProfileQuery,
+    updateResumeProfile,
+    tailorResumeQuery,
+    generateTailoredResume,
+    validateTailoredResume,
+    downloadTailoredResumePdf,
     cvAnalysisQuery,
     atsCheckQuery,
     createProfile,

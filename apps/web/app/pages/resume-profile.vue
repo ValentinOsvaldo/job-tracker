@@ -112,13 +112,13 @@ async function onSave() {
         description="Completa las secciones de abajo y guarda para poder generar CVs adaptados por vacante."
       />
 
-      <PersonalInfoSection v-model="state.personal_info" />
-      <SummarySection v-model="state.summary" />
-      <SkillsSection v-model="state.skills" />
-      <ExperienceSection v-model="state.experience" />
-      <SkillEvidenceSection v-model="state.skill_evidence" />
-      <ProjectsSection v-model="state.projects" />
-      <EducationSection v-model="state.education" />
+      <ResumeProfilePersonalInfoSection v-model="state.personal_info" />
+      <ResumeProfileSummarySection v-model="state.summary" />
+      <ResumeProfileSkillsSection v-model="state.skills" />
+      <ResumeProfileExperienceSection v-model="state.experience" />
+      <ResumeProfileSkillEvidenceSection v-model="state.skill_evidence" />
+      <ResumeProfileProjectsSection v-model="state.projects" />
+      <ResumeProfileEducationSection v-model="state.education" />
 
       <div class="flex justify-end">
         <UButton

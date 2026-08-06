@@ -39,6 +39,39 @@ const pins = computed<MapPin[]>(() =>
   }))
 )
 
+const mapWrapperRef = ref<HTMLElement | null>(null)
+let observer: MutationObserver | null = null
+let isReordering = false
+
+function bringPinsToFront() {
+  if (isReordering) return
+  const container = mapWrapperRef.value
+  const svg = container?.querySelector('svg')
+  if (!svg) return
+  const hexCircles = Array.from(svg.querySelectorAll('circle')).filter(circle =>
+    (circle.getAttribute('fill') || '').startsWith('#')
+  )
+  if (!hexCircles.length) return
+
+  isReordering = true
+  hexCircles.forEach(circle => svg.appendChild(circle))
+  setTimeout(() => {
+    isReordering = false
+  }, 0)
+}
+
+watch(mapWrapperRef, (container) => {
+  observer?.disconnect()
+  if (!container) return
+  observer = new MutationObserver(() => bringPinsToFront())
+  observer.observe(container, { childList: true, subtree: true })
+  nextTick(bringPinsToFront)
+}, { immediate: true })
+
+onBeforeUnmount(() => observer?.disconnect())
+
+watch([view, pins], () => nextTick(bringPinsToFront))
+
 const rankedList = computed(() => activeList.value.slice(0, 8))
 const listMax = computed(() => (rankedList.value.length ? Math.max(...rankedList.value.map(i => i.count)) : 1))
 
@@ -93,6 +126,7 @@ const totalLabel = computed(() => {
       <ClientOnly>
         <div
           v-if="geocoded.length"
+          ref="mapWrapperRef"
           class="p-2 sm:p-4"
         >
           <DottedMap
@@ -102,7 +136,7 @@ const totalLabel = computed(() => {
             region-name="world"
             :show-controls="false"
             :dot-size="0.34"
-            max-height="300px"
+            max-height="150px"
           />
           <DottedMap
             v-else
@@ -112,18 +146,18 @@ const totalLabel = computed(() => {
             :region="mexicoBounds"
             :show-controls="false"
             :dot-size="0.6"
-            max-height="300px"
+            max-height="150px"
           />
         </div>
         <div
           v-else
-          class="flex items-center justify-center h-[300px] text-sm text-muted px-4 text-center"
+          class="flex items-center justify-center h-[150px] text-sm text-muted px-4 text-center"
         >
           No se pudieron ubicar estas ofertas en el mapa, pero aquí está el desglose.
         </div>
         <template #fallback>
           <div class="p-4">
-            <USkeleton class="h-[300px] w-full rounded-lg" />
+            <USkeleton class="h-[150px] w-full rounded-lg" />
           </div>
         </template>
       </ClientOnly>

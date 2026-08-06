@@ -191,7 +191,10 @@ async function onScrape() {
         v-else-if="trends"
         class="space-y-4"
       >
-        <DashboardLocationMap :locations="trends.locations" />
+        <div class="grid gap-4 lg:grid-cols-2">
+          <DashboardLocationMap :locations="trends.locations" />
+          <DashboardAiInsights :insights="trends.ai_insights" />
+        </div>
 
         <div class="grid gap-4 lg:grid-cols-3">
           <div class="lg:col-span-2">
@@ -200,12 +203,7 @@ async function onScrape() {
           <DashboardWorkModeChart :modes="trends.by_work_mode" />
         </div>
 
-        <div class="grid gap-4 lg:grid-cols-3">
-          <div class="lg:col-span-2">
-            <DashboardSkillsChart :skills="trends.top_demanded_skills" />
-          </div>
-          <DashboardAiInsights :insights="trends.ai_insights" />
-        </div>
+        <DashboardSkillsChart :skills="trends.top_demanded_skills" />
       </div>
     </section>
   </div>

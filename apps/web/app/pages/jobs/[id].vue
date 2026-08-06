@@ -76,6 +76,17 @@ const analyses = computed(() =>
 
 const showFullDescription = ref(false)
 
+const emails = computed(() => extractEmails(job.value?.description))
+
+async function copyEmail(email: string) {
+  try {
+    await navigator.clipboard.writeText(email)
+    toast.add({ title: `Copiado: ${email}`, color: 'success' })
+  } catch {
+    toast.add({ title: 'No se pudo copiar', color: 'error' })
+  }
+}
+
 const descriptionSummary = computed(() => {
   if (!job.value) return null
   if (job.value.description_summary) return job.value.description_summary
@@ -184,6 +195,32 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
             Salary:
             {{ formatSalary(job.salary_min, job.salary_max) }}
           </span>
+        </div>
+
+        <div
+          v-if="emails.length > 0"
+          class="flex flex-wrap items-center gap-2 pt-1"
+        >
+          <span class="text-xs text-muted">Contacto:</span>
+          <div
+            v-for="email in emails"
+            :key="email"
+            class="flex items-center gap-1 rounded-md border border-default bg-elevated pl-2 pr-1 py-0.5"
+          >
+            <a
+              :href="`mailto:${email}`"
+              class="text-xs text-highlighted hover:underline"
+            >{{ email }}</a>
+            <UButton
+              icon="i-lucide-copy"
+              size="2xs"
+              color="neutral"
+              variant="ghost"
+              :aria-label="`Copiar ${email}`"
+              :title="`Copiar ${email}`"
+              @click="copyEmail(email)"
+            />
+          </div>
         </div>
 
         <div

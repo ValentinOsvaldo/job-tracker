@@ -61,7 +61,7 @@ export class TailorResumeService {
   ) {}
 
   async generate(userId: string, jobId: string): Promise<TailoredResume> {
-    const job = await this.assertOwnership(userId, jobId);
+    const job = await this.assertAppliedOwnership(userId, jobId);
     const profile = await this.resumeProfileService.findByUser(userId);
 
     const aiResult = await this.resumeTailor.tailorResume(job, profile);
@@ -72,7 +72,7 @@ export class TailorResumeService {
   }
 
   async findSaved(userId: string, jobId: string): Promise<TailoredResume> {
-    await this.assertOwnership(userId, jobId);
+    await this.assertJobExists(jobId);
 
     const saved = await this.tailoredResumeRepository.findOne({
       where: { user_id: userId, job_id: jobId },
@@ -92,7 +92,7 @@ export class TailorResumeService {
     jobId: string,
     edited?: TailoredResumeContentDto,
   ): Promise<TailoredResume> {
-    await this.assertOwnership(userId, jobId);
+    await this.assertJobExists(jobId);
     const profile = await this.resumeProfileService.findByUser(userId);
 
     const existing = await this.tailoredResumeRepository.findOne({
@@ -145,12 +145,24 @@ export class TailorResumeService {
     return this.tailoredResumeRepository.save(row);
   }
 
-  private async assertOwnership(userId: string, jobId: string): Promise<Job> {
+  private async assertJobExists(jobId: string): Promise<Job> {
     const job = await this.jobsRepository.findOneBy({ id: jobId });
 
     if (!job) {
       throw new NotFoundException(`Job with id ${jobId} not found`);
     }
+
+    return job;
+  }
+
+  /** Only the generate step requires "applied" — reading back a saved
+   * resume (findSaved) or re-validating edits (validate) must not 403
+   * just because the job's applied status changed after generation. */
+  private async assertAppliedOwnership(
+    userId: string,
+    jobId: string,
+  ): Promise<Job> {
+    const job = await this.assertJobExists(jobId);
 
     const status = await this.jobUserStatusRepository.findOne({
       where: { user_id: userId, job_id: jobId, applied: true },

@@ -7,8 +7,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
+  const { profile_id: profileId } = getQuery(event)
+
   return backendFetch<RegenerateAnalysesResult>(event, `/api/jobs/${id}/analyses/regenerate`, {
     method: 'POST',
-    body: {}
+    body: {},
+    query: typeof profileId === 'string' ? { profile_id: profileId } : undefined
   })
 })

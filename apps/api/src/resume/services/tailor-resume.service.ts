@@ -19,9 +19,11 @@ import { Job } from '../../jobs/entities/job.entity';
 import { JobUserStatus } from '../../jobs/entities/job-user-status.entity';
 import { TailoredResumeContentDto } from '../dto/tailored-resume/tailored-resume-content.dto';
 import { EvidenceConfidence } from '../enums/evidence-confidence.enum';
+import { ResumeLanguage } from '../enums/resume-language.enum';
 import { ResumeProfile } from '../entities/resume-profile.entity';
 import { TailoredResume } from '../entities/tailored-resume.entity';
 import { ResumeProfileService } from './resume-profile.service';
+import { ResumeProfileTranslationService } from './resume-profile-translation.service';
 import { ResumeReviewService } from './resume-review.service';
 import {
   Bullet,
@@ -57,18 +59,44 @@ export class TailorResumeService {
     @Inject(AI_RESUME_TAILOR)
     private readonly resumeTailor: ResumeTailor,
     private readonly resumeProfileService: ResumeProfileService,
+    private readonly resumeProfileTranslationService: ResumeProfileTranslationService,
     private readonly resumeReviewService: ResumeReviewService,
   ) {}
 
-  async generate(userId: string, jobId: string): Promise<TailoredResume> {
+  async generate(
+    userId: string,
+    jobId: string,
+    language: ResumeLanguage = ResumeLanguage.EN,
+  ): Promise<TailoredResume> {
     const job = await this.assertAppliedOwnership(userId, jobId);
     const profile = await this.resumeProfileService.findByUser(userId);
+    const promptProfile = await this.profileInLanguage(profile, language);
 
-    const aiResult = await this.resumeTailor.tailorResume(job, profile);
-    const assembled = this.assembleGeneratedContent(aiResult, profile);
-    const reviewed = this.resumeReviewService.annotate(assembled, profile);
+    const aiResult = await this.resumeTailor.tailorResume(
+      job,
+      promptProfile,
+      language,
+    );
+    const assembled = this.assembleGeneratedContent(aiResult, promptProfile);
+    const reviewed = this.resumeReviewService.annotate(
+      assembled,
+      promptProfile,
+    );
 
-    return this.save(userId, jobId, reviewed);
+    return this.save(userId, jobId, reviewed, language);
+  }
+
+  /** English is the only language a tailored resume gets translated into —
+   * a Spanish profile is machine-translated first so both the AI prompt and
+   * the post-hoc similarity check in ResumeReviewService compare
+   * like-for-like text. Requesting Spanish just uses the profile as-is. */
+  private async profileInLanguage(
+    profile: ResumeProfile,
+    language: ResumeLanguage,
+  ): Promise<ResumeProfile> {
+    return language === ResumeLanguage.EN
+      ? this.resumeProfileTranslationService.toEnglish(profile)
+      : profile;
   }
 
   async findSaved(userId: string, jobId: string): Promise<TailoredResume> {
@@ -105,11 +133,16 @@ export class TailorResumeService {
       );
     }
 
+    // Re-check against the same language the resume was originally
+    // generated in, so needs_review similarity compares like-for-like text.
+    const language = existing.language;
+    const promptProfile = await this.profileInLanguage(profile, language);
+
     // personal_info/education are never accepted from the client — always
     // re-synced from the live profile, same guarantee as on generate().
     const current: TailoredResumeContent = edited
       ? {
-          personal_info: profile.personal_info,
+          personal_info: promptProfile.personal_info,
           summary_variant_used: edited.summary_variant_used,
           summary: edited.summary,
           skills: edited.skills,
@@ -121,18 +154,19 @@ export class TailorResumeService {
             })),
           })),
           projects: edited.projects,
-          education: profile.education,
+          education: promptProfile.education,
         }
       : existing.generated_content;
 
-    const reviewed = this.resumeReviewService.annotate(current, profile);
-    return this.save(userId, jobId, reviewed, existing.id);
+    const reviewed = this.resumeReviewService.annotate(current, promptProfile);
+    return this.save(userId, jobId, reviewed, language, existing.id);
   }
 
   private async save(
     userId: string,
     jobId: string,
     content: TailoredResumeContent,
+    language: ResumeLanguage,
     existingId?: string,
   ): Promise<TailoredResume> {
     const row = this.tailoredResumeRepository.create({
@@ -140,6 +174,7 @@ export class TailorResumeService {
       job_id: jobId,
       user_id: userId,
       generated_content: content,
+      language,
     });
 
     return this.tailoredResumeRepository.save(row);

@@ -2,10 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  DefaultValuePipe,
   Delete,
   Get,
   HttpCode,
   Param,
+  ParseEnumPipe,
   ParseUUIDPipe,
   Patch,
   Post,
@@ -60,6 +62,7 @@ import { JobsService } from './jobs.service';
 import { JobsListQuery } from './types/jobs-list-query.type';
 import { ValidateTailoredResumeDto } from '../resume/dto/tailored-resume/validate-tailored-resume.dto';
 import { TailoredResume } from '../resume/entities/tailored-resume.entity';
+import { ResumeLanguage } from '../resume/enums/resume-language.enum';
 import { ResumeTemplateService } from '../resume/services/resume-template.service';
 import { TailorResumeService } from '../resume/services/tailor-resume.service';
 
@@ -330,6 +333,12 @@ export class JobsController {
       'Requires the job to be marked as applied by the current user and a resume profile to already exist. Overwrites any previously generated tailored resume for this job.',
   })
   @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiQuery({
+    name: 'language',
+    required: false,
+    enum: ResumeLanguage,
+    description: 'Defaults to English; pass "es" for a Spanish resume.',
+  })
   @ApiResponse({ status: 200, type: TailoredResume })
   @ApiResponse({ status: 403, description: 'Job was not marked as applied' })
   @ApiResponse({
@@ -339,8 +348,14 @@ export class JobsController {
   generateTailoredResume(
     @Req() req: { user: PublicUser },
     @Param('id', ParseUUIDPipe) id: string,
+    @Query(
+      'language',
+      new DefaultValuePipe(ResumeLanguage.EN),
+      new ParseEnumPipe(ResumeLanguage),
+    )
+    language: ResumeLanguage,
   ) {
-    return this.tailorResumeService.generate(req.user.id, id);
+    return this.tailorResumeService.generate(req.user.id, id, language);
   }
 
   @Get(':id/tailor-resume')
@@ -406,6 +421,7 @@ export class JobsController {
     const buffer = await this.resumeTemplateService.renderPdf(
       template,
       saved.generated_content,
+      saved.language,
     );
 
     res.set({

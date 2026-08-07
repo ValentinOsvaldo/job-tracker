@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Job } from '../../jobs/entities/job.entity';
+import { ResumeLanguage } from '../../resume/enums/resume-language.enum';
 import { ResumeProfile } from '../../resume/entities/resume-profile.entity';
 import { ResumeTailor } from '../interfaces/resume-tailor.interface';
 import { buildTailorResumePrompt } from '../prompts/build-tailor-resume-prompt';
@@ -16,8 +17,9 @@ export class GeminiResumeTailorService implements ResumeTailor {
   async tailorResume(
     job: Job,
     profile: ResumeProfile,
+    language: ResumeLanguage,
   ): Promise<TailorResumeAiResultDto> {
-    const prompt = buildTailorResumePrompt(job, profile);
+    const prompt = buildTailorResumePrompt(job, profile, language);
     const raw = await this.geminiClient.complete(prompt, 0.2);
 
     try {

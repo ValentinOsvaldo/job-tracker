@@ -6,6 +6,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import pdfMake = require('pdfmake');
 import { resolve, sep } from 'path';
 import { ROBOTO_FONT_DIR, RESUME_PDF_FONTS } from '../config/pdf-fonts.config';
+import { ResumeLanguage } from '../enums/resume-language.enum';
 import { classicTemplate } from '../templates/classic.template';
 import { ResumeTemplateFn } from '../templates/resume-template.types';
 import { TailoredResumeContent } from '../types/tailored-resume-content.type';
@@ -35,6 +36,7 @@ export class ResumeTemplateService {
   renderPdf(
     templateId: string,
     resume: TailoredResumeContent,
+    language: ResumeLanguage = ResumeLanguage.EN,
   ): Promise<Buffer> {
     const template = this.templates.get(templateId);
 
@@ -42,7 +44,7 @@ export class ResumeTemplateService {
       throw new BadRequestException(`Unknown resume template: ${templateId}`);
     }
 
-    const docDefinition = template(resume);
+    const docDefinition = template(resume, language);
     const document = pdfMake.createPdf(docDefinition);
     return document.getBuffer();
   }

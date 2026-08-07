@@ -1,9 +1,16 @@
 import { Job } from '../../jobs/entities/job.entity';
+import { ResumeLanguage } from '../../resume/enums/resume-language.enum';
 import { ResumeProfile } from '../../resume/entities/resume-profile.entity';
+
+const LANGUAGE_LABEL: Record<ResumeLanguage, string> = {
+  [ResumeLanguage.EN]: 'Inglés (English)',
+  [ResumeLanguage.ES]: 'Español',
+};
 
 export function buildTailorResumePrompt(
   job: Job,
   profile: ResumeProfile,
+  language: ResumeLanguage,
 ): string {
   const summaryVariants = Object.entries(profile.summary)
     .map(([key, text]) => `  - "${key}": ${text}`)
@@ -81,6 +88,10 @@ REGLAS OBLIGATORIAS:
    por separado y no forma parte de tu respuesta.
 7. "relevance_score" es un entero 0-100 que indica qué tan relevante es ese bullet/proyecto para ESTA
    vacante específica.
+8. IDIOMA DE SALIDA OBLIGATORIO: ${LANGUAGE_LABEL[language]}. Todo el texto que generes
+   ("summary_text", cada "bullets[].text", cada "text_override" de proyecto) DEBE estar en ese
+   idioma, sin mezclar idiomas, incluso si el perfil de abajo está en un idioma distinto — en ese
+   caso, tradúcelo fielmente al traer las ideas al idioma de salida, sin inventar ni alterar hechos.
 
 Responde ÚNICAMENTE con JSON válido, sin texto adicional ni markdown, con este schema exacto:
 {

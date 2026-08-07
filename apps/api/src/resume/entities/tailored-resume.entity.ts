@@ -10,6 +10,7 @@ import {
 } from 'typeorm';
 import { Job } from '../../jobs/entities/job.entity';
 import { User } from '../../users/entities/user.entity';
+import { ResumeLanguage } from '../enums/resume-language.enum';
 import { TailoredResumeContent } from '../types/tailored-resume-content.type';
 
 @Entity('tailored_resumes')
@@ -38,6 +39,10 @@ export class TailoredResume {
   @ApiProperty()
   @Column({ type: 'jsonb' })
   generated_content: TailoredResumeContent;
+
+  @ApiProperty({ enum: ResumeLanguage })
+  @Column({ type: 'varchar', default: ResumeLanguage.EN })
+  language: ResumeLanguage;
 
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })

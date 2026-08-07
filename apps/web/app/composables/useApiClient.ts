@@ -106,7 +106,18 @@ export function useApiClient() {
   function tailorResumeQuery(jobId: string) {
     return {
       key: ['tailor-resume', jobId] as const,
-      query: () => requestFetch<TailoredResume>(`/api/jobs/${jobId}/tailor-resume`)
+      // A 404 here means "no tailored resume generated yet", not a real
+      // error — resolve to null instead of letting the raw FetchError
+      // (a non-POJO) end up in the query cache, which devalue can't
+      // serialize into the SSR payload and crashes the whole page render.
+      query: async () => {
+        try {
+          return await requestFetch<TailoredResume>(`/api/jobs/${jobId}/tailor-resume`)
+        } catch (error) {
+          if ((error as { statusCode?: number })?.statusCode === 404) return null
+          throw error
+        }
+      }
     }
   }
 

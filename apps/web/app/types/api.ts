@@ -8,6 +8,7 @@ export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown'
 export type WorkModeSource = 'heuristic' | 'ai'
 export type JobRelevance = 'unknown' | 'relevant' | 'irrelevant'
 export type AddedWithin = 'day' | 'week'
+export type JobRoleCategory = 'frontend' | 'backend' | 'fullstack' | 'mobile' | 'other'
 
 export interface PublicUser {
   id: string
@@ -112,6 +113,8 @@ export interface Job {
   source: JobSource
   date_posted: string | null
   job_type: string | null
+  role_category: JobRoleCategory
+  tech_keywords: string[]
   salary_min: number | null
   salary_max: number | null
   salary_interval: string | null
@@ -139,6 +142,9 @@ export interface ListJobsQuery {
   /** Comma-separated work modes, e.g. "remote,hybrid" */
   work_mode?: string
   relevance?: JobRelevance
+  /** Comma-separated role categories, e.g. "frontend,fullstack" */
+  role_category?: string
+  tech_keyword?: string
   location_country?: string
   location_city?: string
   added_within?: AddedWithin
@@ -388,6 +394,11 @@ export interface WorkModeCount {
   count: number
 }
 
+export interface RoleCategoryCount {
+  role_category: JobRoleCategory
+  count: number
+}
+
 export interface DayCount {
   date: string
   count: number
@@ -402,6 +413,7 @@ export interface MarketTrendsResponse {
   top_missing_skills: KeywordStat[]
   locations: LocationInsights
   by_work_mode: WorkModeCount[]
+  by_role_category: RoleCategoryCount[]
   jobs_by_day: DayCount[]
   ai_insights: {
     summary: string

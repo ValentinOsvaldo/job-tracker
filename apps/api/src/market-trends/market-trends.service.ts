@@ -15,7 +15,11 @@ import {
   extractKeywordStats,
   toSkillStats,
 } from './utils/keyword-extraction';
-import { aggregateJobsByDay, aggregateWorkModes } from './utils/job-stats';
+import {
+  aggregateJobsByDay,
+  aggregateRoleCategories,
+  aggregateWorkModes,
+} from './utils/job-stats';
 import { aggregateLocations } from './utils/location-aggregation';
 
 interface CachedTrendsInsights {
@@ -64,6 +68,7 @@ export class MarketTrendsService {
     );
     const locations = aggregateLocations(jobs);
     const byWorkMode = aggregateWorkModes(jobs);
+    const byRoleCategory = aggregateRoleCategories(jobs);
     const jobsByDay = aggregateJobsByDay(jobs, periodDays);
 
     if (jobs.length === 0) {
@@ -76,6 +81,7 @@ export class MarketTrendsService {
         top_missing_skills: topMissingSkills,
         locations,
         by_work_mode: byWorkMode,
+        by_role_category: byRoleCategory,
         jobs_by_day: jobsByDay,
         ai_insights: null,
         generated_at: new Date().toISOString(),
@@ -125,6 +131,7 @@ export class MarketTrendsService {
       top_missing_skills: topMissingSkills,
       locations,
       by_work_mode: byWorkMode,
+      by_role_category: byRoleCategory,
       jobs_by_day: jobsByDay,
       ai_insights: aiInsights,
       generated_at: new Date().toISOString(),

@@ -223,6 +223,11 @@ async function onScrape() {
           <DashboardWorkModeChart :modes="trends.by_work_mode" />
         </div>
 
+        <div class="grid gap-4 lg:grid-cols-2">
+          <DashboardRoleCategoryChart :categories="trends.by_role_category" />
+          <DashboardSkillsChart :skills="trends.top_keywords" title="Keywords más pedidas" subtitle="Tecnologías detectadas en las ofertas" />
+        </div>
+
         <DashboardSkillsChart :skills="trends.top_demanded_skills" />
       </div>
     </section>

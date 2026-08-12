@@ -10,6 +10,7 @@ import { JobAnalysis } from '../../job-analyses/entities/job-analysis.entity';
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
 import { JobRelevance } from '../enums/job-relevance.enum';
+import { JobRoleCategory } from '../enums/job-role-category.enum';
 import { WorkMode } from '../enums/work-mode.enum';
 import { WorkModeSource } from '../enums/work-mode-source.enum';
 
@@ -85,6 +86,27 @@ export class Job {
   @ApiPropertyOptional({ nullable: true, example: 'fulltime' })
   @Column({ type: 'varchar', length: 50, nullable: true })
   job_type: string | null;
+
+  @ApiProperty({
+    enum: JobRoleCategory,
+    example: JobRoleCategory.FULLSTACK,
+    description:
+      'Dev role inferred from title/description (frontend/backend/fullstack/mobile/other), for filtering and stats',
+  })
+  @Column({
+    type: 'enum',
+    enum: JobRoleCategory,
+    default: JobRoleCategory.OTHER,
+  })
+  role_category: JobRoleCategory;
+
+  @ApiProperty({
+    type: [String],
+    example: ['React', 'TypeScript', 'AWS'],
+    description: 'Technology keywords detected in title/description',
+  })
+  @Column({ type: 'text', array: true, default: '{}' })
+  tech_keywords: string[];
 
   @ApiPropertyOptional({ nullable: true, example: 110000 })
   @Column({ type: 'int', nullable: true })

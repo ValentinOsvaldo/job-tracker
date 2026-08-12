@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AddedWithin, InterestStatus, Job, JobRelevance, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
+import type { AddedWithin, InterestStatus, Job, JobRelevance, JobRoleCategory, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
 definePageMeta({
@@ -36,6 +36,7 @@ type Filters = {
   min_score: number | undefined
   work_mode: WorkMode[]
   relevance: RelevanceFilter
+  role_category: JobRoleCategory[]
   location_city: string
   added: AddedFilter
   sort_by: JobSortBy | undefined
@@ -69,6 +70,7 @@ function filtersFromQuery(query: Record<string, unknown>): Filters {
     min_score: readQueryNumber(query.min_score),
     work_mode: readQueryArray(query.work_mode) as WorkMode[],
     relevance: (readQueryString(query.relevance) as RelevanceFilter | undefined) ?? 'all',
+    role_category: readQueryArray(query.role_category) as JobRoleCategory[],
     location_city: readQueryString(query.location_city) ?? '',
     added: (readQueryString(query.added) as AddedFilter | undefined) ?? 'all',
     sort_by: readQueryString(query.sort_by) as JobSortBy | undefined,
@@ -86,6 +88,7 @@ function queryFromFilters(source: Filters): Record<string, string> {
   if (source.min_score !== undefined) query.min_score = String(source.min_score)
   if (source.work_mode.length > 0) query.work_mode = source.work_mode.join(',')
   if (source.relevance !== 'all') query.relevance = source.relevance
+  if (source.role_category.length > 0) query.role_category = source.role_category.join(',')
   if (source.location_city) query.location_city = source.location_city
   if (source.added !== 'all') query.added = source.added
   if (source.sort_by) {
@@ -114,6 +117,7 @@ const queryFilters = computed<ListJobsQuery>(() => ({
     : undefined,
   work_mode: filters.work_mode.length > 0 ? filters.work_mode.join(',') : undefined,
   relevance: filters.relevance === 'all' ? undefined : filters.relevance,
+  role_category: filters.role_category.length > 0 ? filters.role_category.join(',') : undefined,
   location_city: filters.location_city || undefined,
   added_within: filters.added === 'all' ? undefined : filters.added,
   sort_by: filters.sort_by,
@@ -172,6 +176,30 @@ const WORK_MODE_COLORS: Record<WorkMode, 'success' | 'warning' | 'neutral'> = {
   unknown: 'neutral'
 }
 
+const roleCategoryItems: { label: string, value: JobRoleCategory }[] = [
+  { label: 'Frontend', value: 'frontend' },
+  { label: 'Backend', value: 'backend' },
+  { label: 'Fullstack', value: 'fullstack' },
+  { label: 'Mobile', value: 'mobile' },
+  { label: 'Otro', value: 'other' }
+]
+
+const ROLE_CATEGORY_LABELS: Record<JobRoleCategory, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  fullstack: 'Fullstack',
+  mobile: 'Mobile',
+  other: 'Otro'
+}
+
+const ROLE_CATEGORY_COLORS: Record<JobRoleCategory, 'primary' | 'success' | 'warning' | 'neutral'> = {
+  frontend: 'primary',
+  backend: 'success',
+  fullstack: 'warning',
+  mobile: 'neutral',
+  other: 'neutral'
+}
+
 const relevanceItems: { label: string, value: RelevanceFilter }[] = [
   { label: 'All', value: 'all' },
   { label: 'Not checked', value: 'unknown' },
@@ -205,6 +233,7 @@ watch(
     filters.min_score,
     filters.work_mode,
     filters.relevance,
+    filters.role_category,
     filters.location_city,
     filters.added,
     filters.limit,
@@ -453,6 +482,18 @@ const baseColumns = [
       }, () => row.original.work_mode)
   },
   {
+    id: 'role_category',
+    header: 'Category',
+    cell: ({ row }: { row: { original: { role_category: JobRoleCategory } } }) =>
+      row.original.role_category === 'other'
+        ? h('span', { class: 'text-muted' }, '—')
+        : h(UBadge, {
+            color: ROLE_CATEGORY_COLORS[row.original.role_category],
+            variant: 'subtle',
+            size: 'sm'
+          }, () => ROLE_CATEGORY_LABELS[row.original.role_category])
+  },
+  {
     id: 'relevance',
     header: 'Relevance',
     cell: ({ row }: { row: { original: { relevance: JobRelevance, relevance_reason: string | null } } }) => {
@@ -680,6 +721,17 @@ async function onScrape() {
         <USelect
           v-model="filters.relevance"
           :items="relevanceItems"
+          class="w-full"
+        />
+      </UFormField>
+
+      <UFormField label="Category">
+        <USelectMenu
+          v-model="filters.role_category"
+          :items="roleCategoryItems"
+          value-key="value"
+          multiple
+          placeholder="All categories"
           class="w-full"
         />
       </UFormField>

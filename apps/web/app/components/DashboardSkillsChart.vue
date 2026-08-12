@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import type { KeywordStat } from '~/types/api'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   skills: KeywordStat[]
-}>()
+  title?: string
+  subtitle?: string
+}>(), {
+  title: 'Skills más pedidos',
+  subtitle: 'Según el análisis de ofertas con IA'
+})
 
 const data = computed(() => [...props.skills].slice(0, 8).reverse())
 
@@ -18,10 +23,10 @@ const chartHeight = computed(() => Math.max(160, data.value.length * 34))
   <UCard>
     <template #header>
       <h3 class="font-semibold text-highlighted">
-        Skills más pedidos
+        {{ title }}
       </h3>
       <p class="text-xs text-muted mt-0.5">
-        Según el análisis de ofertas con IA
+        {{ subtitle }}
       </p>
     </template>
 

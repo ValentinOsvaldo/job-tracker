@@ -1,5 +1,21 @@
 <script setup lang="ts">
-import type { InterestStatus, TailoredResumeContent } from '~/types/api'
+import type { InterestStatus, JobRoleCategory, TailoredResumeContent } from '~/types/api'
+
+const ROLE_CATEGORY_LABELS: Record<JobRoleCategory, string> = {
+  frontend: 'Frontend',
+  backend: 'Backend',
+  fullstack: 'Fullstack',
+  mobile: 'Mobile',
+  other: 'Otro'
+}
+
+const ROLE_CATEGORY_COLORS: Record<JobRoleCategory, 'primary' | 'success' | 'warning' | 'neutral'> = {
+  frontend: 'primary',
+  backend: 'success',
+  fullstack: 'warning',
+  mobile: 'neutral',
+  other: 'neutral'
+}
 
 definePageMeta({
   middleware: 'auth'
@@ -199,7 +215,29 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
           >
             {{ job.job_type }}
           </UBadge>
+          <UBadge
+            v-if="job.role_category !== 'other'"
+            :color="ROLE_CATEGORY_COLORS[job.role_category]"
+            variant="subtle"
+          >
+            {{ ROLE_CATEGORY_LABELS[job.role_category] }}
+          </UBadge>
           <ScoreBadge :score="bestFitScore(job.analyses)" />
+        </div>
+
+        <div
+          v-if="job.tech_keywords.length > 0"
+          class="flex flex-wrap items-center gap-1.5 pt-1"
+        >
+          <UBadge
+            v-for="tech in job.tech_keywords"
+            :key="tech"
+            color="neutral"
+            variant="outline"
+            size="sm"
+          >
+            {{ tech }}
+          </UBadge>
         </div>
 
         <h1 class="text-2xl sm:text-3xl font-semibold text-highlighted">

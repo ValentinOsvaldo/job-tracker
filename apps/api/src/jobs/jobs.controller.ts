@@ -143,6 +143,8 @@ export class JobsController {
       rejected: query.rejected,
       workMode: query.work_mode,
       relevance: query.relevance,
+      roleCategory: query.role_category,
+      techKeyword: query.tech_keyword,
       locationCountry: query.location_country,
       locationCity: query.location_city,
       addedWithin: query.added_within,

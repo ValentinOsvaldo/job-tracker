@@ -19,6 +19,7 @@ import { SearchProfile } from '../profiles/entities/search-profile.entity';
 import { User } from '../users/entities/user.entity';
 import { JobSource } from './enums/job-source.enum';
 import { JobRelevance } from './enums/job-relevance.enum';
+import { JobRoleCategory } from './enums/job-role-category.enum';
 import { AddedWithin } from './enums/added-within.enum';
 import { CreateBlockedCompanyDto } from './dto/blocked-company.dto';
 import { IngestJobDto } from './dto/ingest-job.dto';
@@ -35,6 +36,8 @@ import { WorkMode } from './enums/work-mode.enum';
 import { WorkModeSource } from './enums/work-mode-source.enum';
 import { UpdateJobStatusDto } from './dto/update-job-status.dto';
 import { JobsListQuery } from './types/jobs-list-query.type';
+import { categorizeJobRole } from './utils/role-category';
+import { extractTechKeywords } from './utils/tech-keywords';
 import { classifyWorkMode } from './utils/work-mode-heuristics';
 
 function uniqueStrings(values: string[]): string[] {
@@ -238,6 +241,8 @@ export class JobsService {
       rejected,
       workMode,
       relevance,
+      roleCategory,
+      techKeyword,
       locationCountry,
       locationCity,
       addedWithin,
@@ -258,6 +263,8 @@ export class JobsService {
       rejected,
       workMode,
       relevance,
+      roleCategory,
+      techKeyword,
       locationCountry,
       locationCity,
       addedWithin,
@@ -503,6 +510,8 @@ export class JobsService {
       rejected?: boolean;
       workMode?: WorkMode[];
       relevance?: JobRelevance;
+      roleCategory?: JobRoleCategory[];
+      techKeyword?: string;
       locationCountry?: string;
       locationCity?: string;
       addedWithin?: AddedWithin;
@@ -541,6 +550,18 @@ export class JobsService {
     if (filters.relevance) {
       qb.andWhere('job.relevance = :relevance', {
         relevance: filters.relevance,
+      });
+    }
+
+    if (filters.roleCategory && filters.roleCategory.length > 0) {
+      qb.andWhere('job.role_category IN (:...roleCategory)', {
+        roleCategory: filters.roleCategory,
+      });
+    }
+
+    if (filters.techKeyword) {
+      qb.andWhere(':techKeyword = ANY(job.tech_keywords)', {
+        techKeyword: filters.techKeyword,
       });
     }
 
@@ -940,6 +961,8 @@ export class JobsService {
       work_mode: workMode,
       work_mode_source:
         workMode === WorkMode.UNKNOWN ? null : WorkModeSource.HEURISTIC,
+      role_category: categorizeJobRole(record.title, record.description),
+      tech_keywords: extractTechKeywords(record.title, record.description),
     };
   }
 

@@ -1,4 +1,5 @@
 import { Job } from '../../jobs/entities/job.entity';
+import { JobRoleCategory } from '../../jobs/enums/job-role-category.enum';
 import { WorkMode } from '../../jobs/enums/work-mode.enum';
 
 export interface WorkModeCount {
@@ -24,6 +25,34 @@ export function aggregateWorkModes(jobs: Job[]): WorkModeCount[] {
     work_mode: mode,
     count: counts.get(mode) as number,
   }));
+}
+
+export interface RoleCategoryCount {
+  role_category: JobRoleCategory;
+  count: number;
+}
+
+const ROLE_CATEGORY_ORDER = [
+  JobRoleCategory.FULLSTACK,
+  JobRoleCategory.FRONTEND,
+  JobRoleCategory.BACKEND,
+  JobRoleCategory.MOBILE,
+  JobRoleCategory.OTHER,
+];
+
+export function aggregateRoleCategories(jobs: Job[]): RoleCategoryCount[] {
+  const counts = new Map<JobRoleCategory, number>();
+
+  for (const job of jobs) {
+    counts.set(job.role_category, (counts.get(job.role_category) ?? 0) + 1);
+  }
+
+  return ROLE_CATEGORY_ORDER.filter((category) => counts.has(category)).map(
+    (category) => ({
+      role_category: category,
+      count: counts.get(category) as number,
+    }),
+  );
 }
 
 export interface DayCount {

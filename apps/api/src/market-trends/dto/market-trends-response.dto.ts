@@ -1,8 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MarketTrendsAiResult } from '../../ai/types/market-trends-result.type';
 import { KeywordStat } from '../../ai/types/keyword-stat.type';
+import { JobRoleCategory } from '../../jobs/enums/job-role-category.enum';
 import { WorkMode } from '../../jobs/enums/work-mode.enum';
-import { DayCount, WorkModeCount } from '../utils/job-stats';
+import { DayCount, RoleCategoryCount, WorkModeCount } from '../utils/job-stats';
 import { GeoCount, LocationInsights } from '../utils/location-aggregation';
 
 export class KeywordStatDto implements KeywordStat {
@@ -81,6 +82,14 @@ export class WorkModeCountDto implements WorkModeCount {
   count: number;
 }
 
+export class RoleCategoryCountDto implements RoleCategoryCount {
+  @ApiProperty({ enum: JobRoleCategory, example: JobRoleCategory.FULLSTACK })
+  role_category: JobRoleCategory;
+
+  @ApiProperty({ example: 12 })
+  count: number;
+}
+
 export class DayCountDto implements DayCount {
   @ApiProperty({ example: '2026-08-01' })
   date: string;
@@ -113,6 +122,9 @@ export class MarketTrendsResponseDto {
 
   @ApiProperty({ type: [WorkModeCountDto] })
   by_work_mode: WorkModeCountDto[];
+
+  @ApiProperty({ type: [RoleCategoryCountDto] })
+  by_role_category: RoleCategoryCountDto[];
 
   @ApiProperty({ type: [DayCountDto] })
   jobs_by_day: DayCountDto[];

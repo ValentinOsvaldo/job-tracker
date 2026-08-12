@@ -16,6 +16,7 @@ import { ParseBoolean } from '../../common/transforms/parse-boolean.transform';
 import { JobSource } from '../enums/job-source.enum';
 import { InterestStatus } from '../enums/interest-status.enum';
 import { JobRelevance } from '../enums/job-relevance.enum';
+import { JobRoleCategory } from '../enums/job-role-category.enum';
 import { JobSortBy } from '../enums/job-sort-by.enum';
 import { SortDirection } from '../enums/sort-direction.enum';
 import { WorkMode } from '../enums/work-mode.enum';
@@ -71,6 +72,26 @@ export class ListJobsQueryDto {
   @IsOptional()
   @IsEnum(JobRelevance)
   relevance?: JobRelevance;
+
+  @ApiPropertyOptional({
+    enum: JobRoleCategory,
+    isArray: true,
+    description: 'Comma-separated list, e.g. frontend,backend',
+    example: 'frontend,fullstack',
+  })
+  @IsOptional()
+  @Transform(toArray)
+  @IsArray()
+  @IsEnum(JobRoleCategory, { each: true })
+  role_category?: JobRoleCategory[];
+
+  @ApiPropertyOptional({
+    example: 'React',
+    description: 'Filter to jobs tagged with this technology keyword',
+  })
+  @IsOptional()
+  @IsString()
+  tech_keyword?: string;
 
   @ApiPropertyOptional({ example: 'Mexico' })
   @IsOptional()

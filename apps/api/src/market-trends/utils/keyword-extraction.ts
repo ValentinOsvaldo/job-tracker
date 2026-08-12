@@ -1,19 +1,19 @@
 import { Job } from '../../jobs/entities/job.entity';
 import { KeywordStat, KeywordTrend } from '../../ai/types/keyword-stat.type';
-import { normalizeTerm, tokenizeText } from './keyword-tokenizer';
+import { normalizeTerm } from './keyword-tokenizer';
 
-function countTerms(texts: string[]): Map<string, number> {
+/** Counts, per curated tech keyword (job.tech_keywords, populated at
+ * ingest/backfill time from the taxonomy in jobs/utils/tech-keywords.ts),
+ * how many jobs mention it — each job contributes at most once per term
+ * since tech_keywords is already deduped per posting. Using the persisted
+ * column instead of tokenizing title/description on every request keeps
+ * "top keywords" limited to real technologies rather than arbitrary
+ * high-frequency words. */
+function countTechKeywords(jobs: Job[]): Map<string, number> {
   const counts = new Map<string, number>();
 
-  for (const text of texts) {
-    const seenInDoc = new Set<string>();
-
-    for (const term of tokenizeText(text)) {
-      if (seenInDoc.has(term)) {
-        continue;
-      }
-
-      seenInDoc.add(term);
+  for (const job of jobs) {
+    for (const term of job.tech_keywords ?? []) {
       counts.set(term, (counts.get(term) ?? 0) + 1);
     }
   }
@@ -21,12 +21,8 @@ function countTerms(texts: string[]): Map<string, number> {
   return counts;
 }
 
-function jobCorpusText(job: Job): string {
-  return [job.title, job.description ?? ''].filter(Boolean).join(' ');
-}
-
 export function extractKeywordStats(jobs: Job[], limit: number): KeywordStat[] {
-  const counts = countTerms(jobs.map(jobCorpusText));
+  const counts = countTechKeywords(jobs);
   const total = jobs.length || 1;
 
   return [...counts.entries()]
@@ -55,8 +51,8 @@ export function detectRisingKeywords(
     (job) => job.scraped_at >= previousCutoff && job.scraped_at < recentCutoff,
   );
 
-  const recentCounts = countTerms(recentJobs.map(jobCorpusText));
-  const previousCounts = countTerms(previousJobs.map(jobCorpusText));
+  const recentCounts = countTechKeywords(recentJobs);
+  const previousCounts = countTechKeywords(previousJobs);
 
   const terms = new Set([...recentCounts.keys(), ...previousCounts.keys()]);
   const stats: KeywordStat[] = [];
@@ -78,7 +74,7 @@ export function detectRisingKeywords(
     }
 
     stats.push({
-      term: normalizeTerm(term),
+      term,
       count: recent,
       trend,
       source: 'jobs',

@@ -192,12 +192,15 @@ const ROLE_CATEGORY_LABELS: Record<JobRoleCategory, string> = {
   other: 'Otro'
 }
 
-const ROLE_CATEGORY_COLORS: Record<JobRoleCategory, 'primary' | 'success' | 'warning' | 'neutral'> = {
-  frontend: 'primary',
-  backend: 'success',
-  fullstack: 'warning',
-  mobile: 'neutral',
-  other: 'neutral'
+// Neutral + icon (not color) for identity here — success/warning are already
+// spoken for by the Mode column (remote/hybrid), so reusing them for an
+// unrelated dimension would make color mean two different things.
+const ROLE_CATEGORY_ICONS: Record<JobRoleCategory, string> = {
+  frontend: 'i-lucide-layout-panel-left',
+  backend: 'i-lucide-server',
+  fullstack: 'i-lucide-layers',
+  mobile: 'i-lucide-smartphone',
+  other: 'i-lucide-circle-dashed'
 }
 
 const relevanceItems: { label: string, value: RelevanceFilter }[] = [
@@ -224,6 +227,39 @@ const totalPages = computed(() => {
   const limit = jobsResponse.value?.limit ?? filters.limit
   return Math.max(1, Math.ceil(total / limit))
 })
+
+// Toolbar filters (status/category/work mode/relevance) stay visible;
+// everything else lives behind "More filters" — this count is what tells
+// someone something's set back there without opening the popover.
+const advancedActiveCount = computed(() =>
+  (filters.source !== 'all' ? 1 : 0)
+  + (filters.profile_id !== 'all' ? 1 : 0)
+  + (filters.location_city ? 1 : 0)
+  + (filters.min_score !== undefined ? 1 : 0)
+  + (filters.added !== 'all' ? 1 : 0)
+  + (filters.limit !== 20 ? 1 : 0)
+)
+
+const activeFilterCount = computed(() =>
+  (filters.status !== 'all' ? 1 : 0)
+  + filters.role_category.length
+  + filters.work_mode.length
+  + (filters.relevance !== 'all' ? 1 : 0)
+  + advancedActiveCount.value
+)
+
+function clearFilters() {
+  filters.source = 'all'
+  filters.profile_id = 'all'
+  filters.status = 'all'
+  filters.min_score = undefined
+  filters.work_mode = []
+  filters.relevance = 'all'
+  filters.role_category = []
+  filters.location_city = ''
+  filters.added = 'all'
+  filters.limit = 20
+}
 
 watch(
   () => [
@@ -488,9 +524,10 @@ const baseColumns = [
       row.original.role_category === 'other'
         ? h('span', { class: 'text-muted' }, '—')
         : h(UBadge, {
-            color: ROLE_CATEGORY_COLORS[row.original.role_category],
+            color: 'neutral',
             variant: 'subtle',
-            size: 'sm'
+            size: 'sm',
+            icon: ROLE_CATEGORY_ICONS[row.original.role_category]
           }, () => ROLE_CATEGORY_LABELS[row.original.role_category])
   },
   {
@@ -681,100 +718,133 @@ async function onScrape() {
       </div>
     </div>
 
-    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      <UFormField label="Source">
-        <USelect
-          v-model="filters.source"
-          :items="sourceItems"
-          class="w-full"
-        />
-      </UFormField>
-
-      <UFormField label="Profile">
-        <USelect
-          v-model="filters.profile_id"
-          :items="profileItems"
-          class="w-full"
-        />
-      </UFormField>
-
-      <UFormField label="Status">
+    <div class="space-y-2">
+      <div class="flex flex-wrap items-center gap-2">
         <USelect
           v-model="filters.status"
           :items="statusItems"
-          class="w-full"
+          size="sm"
+          class="w-full sm:w-36"
         />
-      </UFormField>
-
-      <UFormField label="Work mode">
-        <USelectMenu
-          v-model="filters.work_mode"
-          :items="workModeItems"
-          value-key="value"
-          multiple
-          placeholder="All modes"
-          class="w-full"
-        />
-      </UFormField>
-
-      <UFormField label="Relevance">
-        <USelect
-          v-model="filters.relevance"
-          :items="relevanceItems"
-          class="w-full"
-        />
-      </UFormField>
-
-      <UFormField label="Category">
         <USelectMenu
           v-model="filters.role_category"
           :items="roleCategoryItems"
           value-key="value"
           multiple
-          placeholder="All categories"
-          class="w-full"
+          placeholder="Category"
+          size="sm"
+          class="w-full sm:w-40"
         />
-      </UFormField>
-
-      <UFormField label="City">
-        <UInput
-          v-model="filters.location_city"
-          placeholder="e.g. Guadalajara"
-          class="w-full"
+        <USelectMenu
+          v-model="filters.work_mode"
+          :items="workModeItems"
+          value-key="value"
+          multiple
+          placeholder="Work mode"
+          size="sm"
+          class="w-full sm:w-40"
         />
-      </UFormField>
-
-      <UFormField label="Agregado">
         <USelect
-          v-model="filters.added"
-          :items="addedItems"
-          class="w-full"
+          v-model="filters.relevance"
+          :items="relevanceItems"
+          size="sm"
+          class="w-full sm:w-36"
         />
-      </UFormField>
 
-      <UFormField label="Min score">
-        <UInput
-          v-model.number="filters.min_score"
-          type="number"
-          min="0"
-          max="10"
-          step="0.5"
-          placeholder="e.g. 7"
-          class="w-full"
-        />
-      </UFormField>
+        <UPopover>
+          <UChip
+            :text="advancedActiveCount"
+            :show="advancedActiveCount > 0"
+            size="sm"
+            color="primary"
+          >
+            <UButton
+              color="neutral"
+              variant="subtle"
+              size="sm"
+              icon="i-lucide-sliders-horizontal"
+              trailing-icon="i-lucide-chevron-down"
+            >
+              More filters
+            </UButton>
+          </UChip>
 
-      <UFormField label="Page size">
-        <USelect
-          v-model="filters.limit"
-          :items="[
-            { label: '10', value: 10 },
-            { label: '20', value: 20 },
-            { label: '50', value: 50 }
-          ]"
-          class="w-full"
-        />
-      </UFormField>
+          <template #content>
+            <div class="w-72 space-y-3 p-4">
+              <UFormField label="Source">
+                <USelect
+                  v-model="filters.source"
+                  :items="sourceItems"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="Profile">
+                <USelect
+                  v-model="filters.profile_id"
+                  :items="profileItems"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="City">
+                <UInput
+                  v-model="filters.location_city"
+                  placeholder="e.g. Guadalajara"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="Min score">
+                <UInput
+                  v-model.number="filters.min_score"
+                  type="number"
+                  min="0"
+                  max="10"
+                  step="0.5"
+                  placeholder="e.g. 7"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="Agregado">
+                <USelect
+                  v-model="filters.added"
+                  :items="addedItems"
+                  class="w-full"
+                />
+              </UFormField>
+
+              <UFormField label="Page size">
+                <USelect
+                  v-model="filters.limit"
+                  :items="[
+                    { label: '10', value: 10 },
+                    { label: '20', value: 20 },
+                    { label: '50', value: 50 }
+                  ]"
+                  class="w-full"
+                />
+              </UFormField>
+            </div>
+          </template>
+        </UPopover>
+
+        <UButton
+          v-if="activeFilterCount > 0"
+          color="neutral"
+          variant="ghost"
+          size="sm"
+          icon="i-lucide-x"
+          @click="clearFilters"
+        >
+          Limpiar
+        </UButton>
+      </div>
+
+      <p class="text-xs text-muted tabular-nums">
+        {{ jobsResponse?.total ?? 0 }} jobs{{ activeFilterCount > 0 ? ` · ${activeFilterCount} filtro${activeFilterCount > 1 ? 's' : ''} activo${activeFilterCount > 1 ? 's' : ''}` : '' }}
+      </p>
     </div>
 
     <UAlert

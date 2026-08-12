@@ -9,12 +9,14 @@ const ROLE_CATEGORY_LABELS: Record<JobRoleCategory, string> = {
   other: 'Otro'
 }
 
-const ROLE_CATEGORY_COLORS: Record<JobRoleCategory, 'primary' | 'success' | 'warning' | 'neutral'> = {
-  frontend: 'primary',
-  backend: 'success',
-  fullstack: 'warning',
-  mobile: 'neutral',
-  other: 'neutral'
+// Neutral + icon (not color) — matches the jobs table convention, keeping
+// success/warning reserved for their actual meaning elsewhere on the page.
+const ROLE_CATEGORY_ICONS: Record<JobRoleCategory, string> = {
+  frontend: 'i-lucide-layout-panel-left',
+  backend: 'i-lucide-server',
+  fullstack: 'i-lucide-layers',
+  mobile: 'i-lucide-smartphone',
+  other: 'i-lucide-circle-dashed'
 }
 
 definePageMeta({
@@ -217,8 +219,9 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
           </UBadge>
           <UBadge
             v-if="job.role_category !== 'other'"
-            :color="ROLE_CATEGORY_COLORS[job.role_category]"
+            color="neutral"
             variant="subtle"
+            :icon="ROLE_CATEGORY_ICONS[job.role_category]"
           >
             {{ ROLE_CATEGORY_LABELS[job.role_category] }}
           </UBadge>

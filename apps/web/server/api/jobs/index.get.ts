@@ -14,6 +14,8 @@ export default defineEventHandler(async (event) => {
       rejected: query.rejected !== undefined ? query.rejected === 'true' : undefined,
       work_mode: query.work_mode as string | undefined,
       relevance: query.relevance as string | undefined,
+      role_category: query.role_category as string | undefined,
+      tech_keyword: query.tech_keyword as string | undefined,
       location_city: query.location_city as string | undefined,
       location_country: query.location_country as string | undefined,
       added_within: query.added_within as string | undefined,

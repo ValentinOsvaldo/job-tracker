@@ -26,7 +26,10 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { AnalysisPromptResponseDto } from '../job-analyses/dto/analysis-prompt-response.dto';
 import { RegenerateAnalysesResultDto } from '../job-analyses/dto/regenerate-analyses-result.dto';
+import { SaveManualAnalysisDto } from '../job-analyses/dto/save-manual-analysis.dto';
+import { JobAnalysis } from '../job-analyses/entities/job-analysis.entity';
 import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { MarketTrendsResponseDto } from '../market-trends/dto/market-trends-response.dto';
 import { TrendsQueryDto } from '../market-trends/dto/trends-query.dto';
@@ -232,6 +235,54 @@ export class JobsController {
     profileId?: string,
   ) {
     return this.jobAnalysesService.regenerateForJob(req.user.id, id, profileId);
+  }
+
+  @Get(':id/analyses/prompt')
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary:
+      'Get the AI analysis prompt for a job/profile pair, to copy and use manually in an external chat tool',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiQuery({ name: 'profile_id', required: true, format: 'uuid' })
+  @ApiResponse({ status: 200, type: AnalysisPromptResponseDto })
+  @ApiResponse({ status: 404, description: 'Job or profile not found' })
+  async getAnalysisPrompt(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('profile_id', ParseUUIDPipe) profileId: string,
+  ): Promise<AnalysisPromptResponseDto> {
+    const prompt = await this.jobAnalysesService.getPromptForJob(
+      req.user.id,
+      id,
+      profileId,
+    );
+    return { prompt };
+  }
+
+  @Post(':id/analyses/manual')
+  @HttpCode(200)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({
+    summary:
+      'Save an analysis result obtained manually from an external AI chat tool',
+  })
+  @ApiParam({ name: 'id', format: 'uuid' })
+  @ApiBody({ type: SaveManualAnalysisDto })
+  @ApiResponse({ status: 200, type: JobAnalysis })
+  @ApiResponse({ status: 400, description: 'Invalid pasted response' })
+  @ApiResponse({ status: 404, description: 'Job or profile not found' })
+  saveManualAnalysis(
+    @Req() req: { user: PublicUser },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: SaveManualAnalysisDto,
+  ) {
+    return this.jobAnalysesService.saveManualAnalysis(
+      req.user.id,
+      id,
+      body.profile_id,
+      body.raw,
+    );
   }
 
   @Post(':id/summary/regenerate')

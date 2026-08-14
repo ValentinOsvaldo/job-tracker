@@ -10,6 +10,7 @@ import type {
   CvAnalysisResponse,
   CvUploadResult,
   Job,
+  JobAnalysis,
   JobStatusResponse,
   JobsListResponse,
   ListJobsQuery,
@@ -228,6 +229,19 @@ export function useApiClient() {
     })
   }
 
+  function getAnalysisPrompt(jobId: string, profileId: string) {
+    return requestFetch<{ prompt: string }>(`/api/jobs/${jobId}/analyses/prompt`, {
+      query: { profile_id: profileId }
+    })
+  }
+
+  function saveManualAnalysis(jobId: string, profileId: string, raw: string) {
+    return requestFetch<JobAnalysis>(`/api/jobs/${jobId}/analyses/manual`, {
+      method: 'POST',
+      body: { profile_id: profileId, raw }
+    })
+  }
+
   function runSeed() {
     return requestFetch<SeedResult>('/api/seed', {
       method: 'POST',
@@ -285,6 +299,8 @@ export function useApiClient() {
     scanRelevance,
     regenerateJobSummary,
     regenerateJobAnalyses,
+    getAnalysisPrompt,
+    saveManualAnalysis,
     runSeed,
     createUser,
     updateUser,

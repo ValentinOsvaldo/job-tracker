@@ -18,6 +18,11 @@ import { JobAnalyzer } from '../ai/interfaces/job-analyzer.interface';
 import { JobSummarizer } from '../ai/interfaces/job-summarizer.interface';
 import { RelevanceClassifier } from '../ai/interfaces/relevance-classifier.interface';
 import { WorkModeClassifier } from '../ai/interfaces/work-mode-classifier.interface';
+import { buildAnalysisPrompt } from '../ai/prompts/build-analysis-prompt';
+import {
+  JobAnalysisResult,
+  parseAnalysisResult,
+} from '../ai/types/job-analysis-result.type';
 import { Job } from '../jobs/entities/job.entity';
 import { JobRelevance } from '../jobs/enums/job-relevance.enum';
 import { WorkMode } from '../jobs/enums/work-mode.enum';
@@ -390,6 +395,95 @@ export class JobAnalysesService {
       scope: 'profile',
       profile_id: profileId,
     };
+  }
+
+  /** Builds the same prompt the AI provider would receive, so it can be
+   * copied and pasted into an external chat tool when tokens are running
+   * low. Scoped to the requesting user so their CV/profile isn't leaked. */
+  async getPromptForJob(
+    userId: string,
+    jobId: string,
+    profileId: string,
+  ): Promise<string> {
+    const job = await this.jobsRepository.findOneBy({ id: jobId });
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    const profile = await this.profilesRepository.findOne({
+      where: { id: profileId, user_id: userId },
+      relations: { user: true },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(`Profile with id ${profileId} not found`);
+    }
+
+    if (!profile.user?.cv_text) {
+      throw new BadRequestException(
+        `Profile with id ${profileId} requires an uploaded CV before analysis`,
+      );
+    }
+
+    return buildAnalysisPrompt(job, profile, profile.user);
+  }
+
+  /** Saves an analysis result obtained by pasting the prompt from
+   * getPromptForJob into an external AI chat tool and copying back its raw
+   * response, instead of calling the AI provider directly. */
+  async saveManualAnalysis(
+    userId: string,
+    jobId: string,
+    profileId: string,
+    raw: string,
+  ): Promise<JobAnalysis> {
+    const job = await this.jobsRepository.findOneBy({ id: jobId });
+
+    if (!job) {
+      throw new NotFoundException(`Job with id ${jobId} not found`);
+    }
+
+    const profile = await this.profilesRepository.findOne({
+      where: { id: profileId, user_id: userId },
+    });
+
+    if (!profile) {
+      throw new NotFoundException(`Profile with id ${profileId} not found`);
+    }
+
+    let result: JobAnalysisResult;
+    try {
+      result = parseAnalysisResult(raw);
+    } catch {
+      throw new BadRequestException(
+        'El texto pegado no es un JSON de análisis válido',
+      );
+    }
+
+    const existing = await this.findByJobAndProfile(jobId, profileId);
+
+    const saved = await this.jobAnalysesRepository.save({
+      id: existing?.id,
+      job_id: jobId,
+      profile_id: profileId,
+      fit_score: result.fit_score,
+      matched_skills: result.matched_skills,
+      missing_skills: result.missing_skills,
+      summary: result.summary,
+      salary_min: result.salary_min,
+      salary_max: result.salary_max,
+      salary_is_inferred: result.salary_is_inferred,
+      benefits: result.benefits,
+      benefits_is_inferred: result.benefits_is_inferred,
+    });
+
+    return (
+      (await this.jobAnalysesRepository.findOne({
+        where: { id: saved.id },
+        relations: { profile: true },
+      })) ?? saved
+    );
   }
 
   async regenerateSummaryForJob(jobId: string): Promise<Job> {

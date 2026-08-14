@@ -90,6 +90,9 @@ function onTailoredResumeUpdated(content: TailoredResumeContent) {
 
 const regeneratingSummary = ref(false)
 const regeneratingProfileId = ref<string | null>(null)
+const copyingPromptProfileId = ref<string | null>(null)
+const manualAnalysisProfile = ref<{ id: string, name: string } | null>(null)
+const manualAnalysisModalOpen = ref(false)
 
 async function onRegenerateSummary() {
   regeneratingSummary.value = true
@@ -133,6 +136,38 @@ async function onAnalyzeWithProfile(profileId: string, profileName: string) {
   } finally {
     regeneratingProfileId.value = null
   }
+}
+
+async function onCopyPrompt(profileId: string) {
+  copyingPromptProfileId.value = profileId
+
+  try {
+    const { prompt } = await api.getAnalysisPrompt(id.value, profileId)
+    await navigator.clipboard.writeText(prompt)
+    toast.add({
+      title: 'Prompt copiado',
+      description: 'Pégalo en tu herramienta de chat y usa "Pegar resultado" para guardar la respuesta.',
+      color: 'success'
+    })
+  } catch (err: unknown) {
+    toast.add({
+      title: 'No se pudo copiar el prompt',
+      description: (err as { data?: { message?: string } })?.data?.message
+        || 'Intenta de nuevo en unos segundos',
+      color: 'error'
+    })
+  } finally {
+    copyingPromptProfileId.value = null
+  }
+}
+
+function onOpenManualAnalysis(profileId: string, profileName: string) {
+  manualAnalysisProfile.value = { id: profileId, name: profileName }
+  manualAnalysisModalOpen.value = true
+}
+
+function onManualAnalysisSaved() {
+  void queryCache.invalidateQueries({ key: ['job', id.value] })
 }
 
 const analyses = computed(() =>
@@ -326,21 +361,57 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
           class="flex flex-wrap items-center gap-2 pt-1"
         >
           <span class="text-xs text-muted">Analizar como:</span>
-          <UButton
+          <div
             v-for="profile in activeProfiles"
             :key="profile.id"
-            color="neutral"
-            variant="outline"
-            size="xs"
-            icon="i-lucide-sparkles"
-            :loading="regeneratingProfileId === profile.id"
-            :disabled="regeneratingProfileId !== null"
-            @click="onAnalyzeWithProfile(profile.id, profile.name)"
+            class="inline-flex items-center rounded-md border border-default overflow-hidden"
           >
-            {{ profile.name }}
-          </UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="xs"
+              icon="i-lucide-sparkles"
+              class="rounded-none border-0"
+              :loading="regeneratingProfileId === profile.id"
+              :disabled="regeneratingProfileId !== null"
+              @click="onAnalyzeWithProfile(profile.id, profile.name)"
+            >
+              {{ profile.name }}
+            </UButton>
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="xs"
+              icon="i-lucide-clipboard-copy"
+              class="rounded-none border-0 border-l border-default"
+              :loading="copyingPromptProfileId === profile.id"
+              :disabled="copyingPromptProfileId !== null"
+              :aria-label="`Copiar prompt para ${profile.name}`"
+              :title="`Copiar prompt para ${profile.name}`"
+              @click="onCopyPrompt(profile.id)"
+            />
+            <UButton
+              color="neutral"
+              variant="outline"
+              size="xs"
+              icon="i-lucide-clipboard-paste"
+              class="rounded-none border-0 border-l border-default"
+              :aria-label="`Pegar resultado manual para ${profile.name}`"
+              :title="`Pegar resultado manual para ${profile.name}`"
+              @click="onOpenManualAnalysis(profile.id, profile.name)"
+            />
+          </div>
         </div>
       </div>
+
+      <ManualAnalysisModal
+        v-if="manualAnalysisProfile"
+        v-model:open="manualAnalysisModalOpen"
+        :job-id="id"
+        :profile-id="manualAnalysisProfile.id"
+        :profile-name="manualAnalysisProfile.name"
+        @saved="onManualAnalysisSaved"
+      />
 
       <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
         <div class="space-y-3">

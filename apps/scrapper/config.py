@@ -32,7 +32,6 @@ SEARCH_TERMS = _parse_csv(
 LOCATIONS = _parse_csv(os.getenv("LOCATIONS"), ["mexico"])
 RESULTS = _parse_int(os.getenv("RESULTS"), 15)
 HOURS_OLD = _parse_int(os.getenv("HOURS_OLD"), 48)
-SCRAPE_INTERVAL_HOURS = _parse_int(os.getenv("SCRAPE_INTERVAL_HOURS"), 24)
 PORT = _parse_int(os.getenv("PORT"), 8000)
 LINKEDIN_FETCH_DESCRIPTION = _parse_bool(
     os.getenv("LINKEDIN_FETCH_DESCRIPTION"),

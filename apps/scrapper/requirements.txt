@@ -1,7 +1,6 @@
 fastapi
 uvicorn
 python-jobspy
-apscheduler
 httpx
 pandas
 python-dotenv

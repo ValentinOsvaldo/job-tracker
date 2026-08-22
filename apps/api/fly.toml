@@ -6,6 +6,9 @@
 app = "job-tracker-tw5koq"
 primary_region = "dfw"
 
+[env]
+PORT = "8080"
+
 [http_service]
 auto_start_machines = true
 auto_stop_machines = true

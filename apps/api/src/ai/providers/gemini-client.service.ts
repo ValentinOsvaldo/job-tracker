@@ -28,7 +28,7 @@ export class GeminiClientService {
     }
 
     const model =
-      this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-2.5-flash';
+      this.configService.get<string>('GEMINI_MODEL') ?? 'gemini-3.8-flash';
 
     try {
       const response = await this.client.models.generateContent({

@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { UpsertResumeProfileInput } from '~/types/api'
 
-definePageMeta({
-  middleware: 'auth'
-})
-
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()

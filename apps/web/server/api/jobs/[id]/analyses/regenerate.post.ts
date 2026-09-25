@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const { profile_id: profileId } = getQuery(event)
 
-  return backendFetch<RegenerateAnalysesResult>(event, `/api/jobs/${id}/analyses/regenerate`, {
+  return backendFetch<RegenerateAnalysesResult>(`/api/jobs/${id}/analyses/regenerate`, {
     method: 'POST',
     body: {},
     query: typeof profileId === 'string' ? { profile_id: profileId } : undefined

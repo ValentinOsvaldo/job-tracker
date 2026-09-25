@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<UpdateProfileInput>(event)
 
-  return backendFetch<SearchProfile>(event, `/api/profiles/${id}`, {
+  return backendFetch<SearchProfile>(`/api/profiles/${id}`, {
     method: 'PATCH',
     body
   })

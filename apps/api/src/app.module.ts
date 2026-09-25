@@ -3,20 +3,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
-import { AuthModule } from './auth/auth.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
-import { RolesGuard } from './auth/guards/roles.guard';
 import {
   createPostgresOptions,
   getDatabaseUrlFromConfigService,
 } from './config/database.config';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
+import { LocalUserGuard } from './users/guards/local-user.guard';
 import { JobsModule } from './jobs/jobs.module';
 import { AiModule } from './ai/ai.module';
 import { ProfilesModule } from './profiles/profiles.module';
 import { JobAnalysesModule } from './job-analyses/job-analyses.module';
-import { SeedModule } from './seed/seed.module';
 import { ResumeModule } from './resume/resume.module';
 
 @Module({
@@ -40,22 +37,16 @@ import { ResumeModule } from './resume/resume.module';
     }),
     HealthModule,
     UsersModule,
-    AuthModule,
     JobsModule,
     ProfilesModule,
     JobAnalysesModule,
     AiModule,
-    SeedModule,
     ResumeModule,
   ],
   providers: [
     {
       provide: APP_GUARD,
-      useClass: JwtAuthGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: LocalUserGuard,
     },
   ],
 })

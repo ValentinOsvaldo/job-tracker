@@ -1,5 +1,19 @@
 # Job Tracker — Especificación del Proyecto.
 
+## Correr con Docker
+
+```bash
+cp .env.example .env   # pon tu GEMINI_API_KEY
+docker compose up --build
+```
+
+- App: http://localhost:3001 · API/Swagger: http://localhost:3000/api · Postgres: `localhost:5432` (postgres/postgres)
+- Un solo usuario, sin login. Los puertos solo escuchan en `127.0.0.1`.
+- Los datos viven en el volumen `postgres_data` (`docker compose down -v` los borra).
+- Las migraciones corren al arrancar el API.
+
+> Nota: el resto de este documento es la especificación original (multi-usuario con JWT); ya no refleja la autenticación actual.
+
 ## Resumen
 
 Sistema personal de seguimiento de ofertas de trabajo con scraping automatizado y análisis de compatibilidad con IA. Diseñado para dos usuarios (Osvaldo y Guillermo) que comparten el sistema pero tienen perfiles de búsqueda independientes por rol (frontend, backend, fullstack, mobile). La IA evalúa cada oferta contra el perfil específico activo, extrae salario y prestaciones del texto, y presenta un top 5 de las mejores oportunidades por perfil.

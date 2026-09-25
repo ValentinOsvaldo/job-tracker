@@ -6,7 +6,8 @@
   "scripts": {
     "start:api": "pnpm --filter @job-tracker/api start:dev",
     "start:web": "pnpm --filter @job-tracker/web dev",
-    "start:all": "concurrently \"pnpm run start:api\" \"pnpm run start:web\""
+    "start:scrapper": "cd apps/scrapper && .venv\\Scripts\\python -m uvicorn main:app --reload --port 8000",
+    "start:all": "concurrently -n api,web,scrapper \"pnpm run start:api\" \"pnpm run start:web\" \"pnpm run start:scrapper\""
   },
   "keywords": [],
   "author": "",

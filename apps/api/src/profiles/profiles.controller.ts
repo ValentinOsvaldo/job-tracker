@@ -11,7 +11,6 @@ import {
   Req,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiParam,
   ApiResponse,
@@ -27,7 +26,6 @@ import { SearchProfile } from './entities/search-profile.entity';
 import { ProfilesService } from './profiles.service';
 
 @ApiTags('profiles')
-@ApiBearerAuth('access-token')
 @Controller('profiles')
 export class ProfilesController {
   constructor(

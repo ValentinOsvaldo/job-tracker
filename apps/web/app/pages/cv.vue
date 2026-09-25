@@ -1,9 +1,4 @@
 <script setup lang="ts">
-definePageMeta({
-  middleware: 'auth'
-})
-
-const auth = useAuthStore()
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
@@ -38,12 +33,11 @@ async function onRefreshAnalysis() {
 }
 
 async function onUpload() {
-  const userId = me.value?.id || auth.user?.id
-  if (!userId || !selectedFile.value) return
+  if (!selectedFile.value) return
 
   uploading.value = true
   try {
-    const result = await api.uploadCv(userId, selectedFile.value)
+    const result = await api.uploadCv(selectedFile.value)
     toast.add({
       title: 'CV uploaded',
       description: `${result.filename} · ${result.characters_extracted} characters`,
@@ -52,7 +46,6 @@ async function onUpload() {
     file.value = null
     await queryCache.invalidateQueries({ key: ['me'] })
     await queryCache.invalidateQueries({ key: ['cv-analysis'] })
-    await auth.refreshUser()
     await refetch()
   } catch (err: unknown) {
     toast.add({

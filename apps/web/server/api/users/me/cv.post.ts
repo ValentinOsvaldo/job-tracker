@@ -2,11 +2,6 @@ import type { CvUploadResult } from '../../../../app/types/api'
 import { backendFetch } from '../../../utils/backend'
 
 export default defineEventHandler(async (event) => {
-  const id = getRouterParam(event, 'id')
-  if (!id) {
-    throw createError({ statusCode: 400, statusMessage: 'User id is required' })
-  }
-
   const form = await readMultipartFormData(event)
   if (!form?.length) {
     throw createError({ statusCode: 400, statusMessage: 'No file uploaded' })
@@ -25,7 +20,7 @@ export default defineEventHandler(async (event) => {
   const body = new FormData()
   body.append('file', blob, filePart.filename || 'cv.pdf')
 
-  return backendFetch<CvUploadResult>(event, `/api/users/${id}/cv`, {
+  return backendFetch<CvUploadResult>('/api/users/me/cv', {
     method: 'POST',
     body
   })

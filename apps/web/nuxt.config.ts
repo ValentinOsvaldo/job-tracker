@@ -6,8 +6,6 @@ export default defineNuxtConfig({
     '@nuxt/image',
     '@nuxt/test-utils',
     '@nuxtjs/mcp-toolkit',
-    'nuxt-auth-utils',
-    'nuxt-authorization',
     'nuxt-charts',
     '@pinia/nuxt',
     '@pinia/colada-nuxt',
@@ -21,16 +19,7 @@ export default defineNuxtConfig({
   css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
-    apiBaseUrl: 'http://localhost:3000',
-    // Server-only; must match Nest SEED_SECRET. Never expose to the client.
-    seedSecret: '',
-    // h3 defaults cookie.secure=true; over http://localhost the browser drops the session → 401s
-    session: {
-      cookie: {
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
-      }
-    }
+    apiBaseUrl: 'http://localhost:3000'
   },
 
   devServer: {
@@ -65,8 +54,8 @@ export default defineNuxtConfig({
       ]
     },
     workbox: {
-      navigateFallback: '/offline',
-      navigateFallbackDenylist: [/^\/api\//],
+      // SSR app: a navigateFallback would serve /offline for *every* navigation.
+      navigateFallback: null,
       globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
       // Never cache API responses — job/profile data must always come from
       // the network, not a stale service worker cache.

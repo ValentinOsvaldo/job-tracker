@@ -2,11 +2,9 @@ import type {
   AtsCheckResponse,
   BlockedCompany,
   BulkDeleteResult,
-  ChangePasswordInput,
   CreateBlockedCompanyInput,
   CreateBlockedCompanyResult,
   CreateProfileInput,
-  CreateUserInput,
   CvAnalysisResponse,
   CvUploadResult,
   Job,
@@ -22,13 +20,11 @@ import type {
   ResumeProfile,
   ScrapeTriggerResult,
   SearchProfile,
-  SeedResult,
   TailoredResume,
   TailoredResumeContent,
   UpdateJobStatusInput,
   UpdateProfileInput,
   UpdateSelfInput,
-  UpdateUserInput,
   UpsertResumeProfileInput
 } from '~/types/api'
 
@@ -38,12 +34,8 @@ function cleanQuery(query: Record<string, string | number | boolean | undefined 
   )
 }
 
-/**
- * Cookie-aware API client. On SSR, useRequestFetch forwards the session cookie
- * so Nitro proxies can authenticate. Plain $fetch does not, which causes 401 on reload.
- */
 export function useApiClient() {
-  const requestFetch = useAuthFetch()
+  const requestFetch = useRequestFetch()
 
   const profilesQuery = {
     key: ['profiles'] as const,
@@ -77,12 +69,7 @@ export function useApiClient() {
 
   const meQuery = {
     key: ['me'] as const,
-    query: () => requestFetch<PublicUser>('/api/auth/me')
-  }
-
-  const usersQuery = {
-    key: ['users'] as const,
-    query: () => requestFetch<PublicUser[]>('/api/users')
+    query: () => requestFetch<PublicUser>('/api/users/me')
   }
 
   const blockedCompaniesQuery = {
@@ -169,10 +156,10 @@ export function useApiClient() {
     return requestFetch<{ ok: true }>(`/api/profiles/${id}`, { method: 'DELETE' })
   }
 
-  function uploadCv(userId: string, file: File) {
+  function uploadCv(file: File) {
     const body = new FormData()
     body.append('file', file)
-    return requestFetch<CvUploadResult>(`/api/users/${userId}/cv`, {
+    return requestFetch<CvUploadResult>('/api/users/me/cv', {
       method: 'POST',
       body
     })
@@ -242,31 +229,8 @@ export function useApiClient() {
     })
   }
 
-  function runSeed() {
-    return requestFetch<SeedResult>('/api/seed', {
-      method: 'POST',
-      body: {}
-    })
-  }
-
-  function createUser(body: CreateUserInput) {
-    return requestFetch<PublicUser>('/api/users', { method: 'POST', body })
-  }
-
-  function updateUser(id: string, body: UpdateUserInput) {
-    return requestFetch<PublicUser>(`/api/users/${id}`, { method: 'PATCH', body })
-  }
-
-  function deleteUser(id: string) {
-    return requestFetch<{ ok: true }>(`/api/users/${id}`, { method: 'DELETE' })
-  }
-
   function updateMe(body: UpdateSelfInput) {
     return requestFetch<PublicUser>('/api/users/me', { method: 'PATCH', body })
-  }
-
-  function changePassword(body: ChangePasswordInput) {
-    return requestFetch<{ ok: true }>('/api/users/me/password', { method: 'PATCH', body })
   }
 
   return {
@@ -275,7 +239,6 @@ export function useApiClient() {
     jobQuery,
     trendsQuery,
     meQuery,
-    usersQuery,
     blockedCompaniesQuery,
     pipelineStatsQuery,
     resumeProfileQuery,
@@ -301,11 +264,6 @@ export function useApiClient() {
     regenerateJobAnalyses,
     getAnalysisPrompt,
     saveManualAnalysis,
-    runSeed,
-    createUser,
-    updateUser,
-    deleteUser,
-    updateMe,
-    changePassword
+    updateMe
   }
 }

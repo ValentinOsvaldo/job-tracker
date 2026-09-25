@@ -23,8 +23,6 @@
     "isomorphic-dompurify": "^3.19.0",
     "marked": "^18.0.6",
     "nuxt": "^4.4.8",
-    "nuxt-auth-utils": "0.5.29",
-    "nuxt-authorization": "0.3.5",
     "nuxt-charts": "2.1.4",
     "pinia": "^4.0.2",
     "tailwindcss": "^4.3.1"

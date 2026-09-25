@@ -2,14 +2,9 @@
 import type { AddedWithin, InterestStatus, Job, JobRelevance, JobRoleCategory, JobSortBy, JobSource, ListJobsQuery, SortDirection, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
-definePageMeta({
-  middleware: 'auth'
-})
-
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
-const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -626,10 +621,8 @@ const baseColumns = [
           variant: 'subtle',
           icon: 'i-lucide-arrow-right'
         }, () => 'View'),
-        auth.isAdmin
-          ? h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' })
-          : null,
-        auth.isAdmin && row.original.company
+        h('div', { class: 'h-4 w-px shrink-0 bg-default mx-1' }),
+        row.original.company
           ? h(UButton, {
               'size': 'xs',
               'color': 'warning',
@@ -642,24 +635,22 @@ const baseColumns = [
               'onClick': () => onBlockCompany(row.original)
             })
           : null,
-        auth.isAdmin
-          ? h(UButton, {
-              'size': 'xs',
-              'color': 'error',
-              'variant': 'ghost',
-              'icon': 'i-lucide-trash-2',
-              'loading': deletingId.value === row.original.id,
-              'disabled': deletingId.value !== null,
-              'aria-label': 'Delete job',
-              'title': 'Delete job',
-              'onClick': () => onDelete(row.original)
-            })
-          : null
+        h(UButton, {
+          'size': 'xs',
+          'color': 'error',
+          'variant': 'ghost',
+          'icon': 'i-lucide-trash-2',
+          'loading': deletingId.value === row.original.id,
+          'disabled': deletingId.value !== null,
+          'aria-label': 'Delete job',
+          'title': 'Delete job',
+          'onClick': () => onDelete(row.original)
+        })
       ])
   }
 ]
 
-const columns = computed(() => (auth.isAdmin ? [selectColumn, ...baseColumns] : baseColumns))
+const columns = [selectColumn, ...baseColumns]
 
 async function onScrape() {
   scraping.value = true
@@ -699,7 +690,6 @@ async function onScrape() {
       </div>
       <div class="flex items-center gap-2">
         <UButton
-          v-if="auth.isAdmin"
           icon="i-lucide-sparkles"
           color="neutral"
           variant="subtle"
@@ -855,7 +845,7 @@ async function onScrape() {
     />
 
     <div
-      v-if="auth.isAdmin && selectedIds.length > 0"
+      v-if="selectedIds.length > 0"
       class="flex flex-wrap items-center gap-3 rounded-lg border border-default bg-elevated/50 px-3 py-2"
     >
       <p class="text-sm text-muted">

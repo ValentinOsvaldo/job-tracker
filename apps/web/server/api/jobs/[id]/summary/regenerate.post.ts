@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
-  return backendFetch<Job>(event, `/api/jobs/${id}/summary/regenerate`, {
+  return backendFetch<Job>(`/api/jobs/${id}/summary/regenerate`, {
     method: 'POST',
     body: {}
   })

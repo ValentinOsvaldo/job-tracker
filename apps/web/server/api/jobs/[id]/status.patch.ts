@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<UpdateJobStatusInput>(event)
 
-  return backendFetch<JobStatusResponse>(event, `/api/jobs/${id}/status`, {
+  return backendFetch<JobStatusResponse>(`/api/jobs/${id}/status`, {
     method: 'PATCH',
     body
   })

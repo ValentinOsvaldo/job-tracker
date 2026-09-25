@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import type { Job, SearchProfile } from '~/types/api'
 
-definePageMeta({
-  middleware: 'auth'
-})
-
-const auth = useAuthStore()
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
+
+const { data: me } = useQuery({
+  key: ['me'],
+  query: () => api.meQuery.query()
+})
 const scraping = ref(false)
 
 const { data: profiles, isPending: profilesPending } = useQuery({
@@ -107,7 +107,7 @@ async function onScrape() {
           Dashboard
         </h1>
         <p class="text-sm text-muted">
-          Welcome back{{ auth.user?.name ? `, ${auth.user.name}` : '' }}. Here are your best matches.
+          Welcome back{{ me?.name ? `, ${me.name}` : '' }}. Here are your best matches.
         </p>
       </div>
       <UButton
@@ -225,7 +225,11 @@ async function onScrape() {
 
         <div class="grid gap-4 lg:grid-cols-2">
           <DashboardRoleCategoryChart :categories="trends.by_role_category" />
-          <DashboardSkillsChart :skills="trends.top_keywords" title="Keywords más pedidas" subtitle="Tecnologías detectadas en las ofertas" />
+          <DashboardSkillsChart
+            :skills="trends.top_keywords"
+            title="Keywords más pedidas"
+            subtitle="Tecnologías detectadas en las ofertas"
+          />
         </div>
 
         <DashboardSkillsChart :skills="trends.top_demanded_skills" />

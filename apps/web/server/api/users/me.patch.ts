@@ -4,7 +4,7 @@ import { backendFetch } from '../../utils/backend'
 export default defineEventHandler(async (event) => {
   const body = await readBody<UpdateSelfInput>(event)
 
-  return backendFetch<PublicUser>(event, '/api/users/me', {
+  return backendFetch<PublicUser>('/api/users/me', {
     method: 'PATCH',
     body
   })

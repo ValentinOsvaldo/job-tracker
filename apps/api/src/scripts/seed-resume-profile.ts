@@ -25,15 +25,7 @@ function parseArgs(argv: string[]): Record<string, string> {
 
 async function main() {
   const args = parseArgs(process.argv.slice(2));
-  const email = args.user;
   const filePath = args.file ?? join(__dirname, 'resume-profile.sample.json');
-
-  if (!email) {
-    console.error(
-      'Usage: pnpm run seed:resume-profile -- --user=<email> [--file=<path.json>]',
-    );
-    process.exit(1);
-  }
 
   const raw: unknown = JSON.parse(readFileSync(filePath, 'utf-8'));
   const normalized = camelToSnakeDeep(raw);
@@ -57,17 +49,10 @@ async function main() {
 
   try {
     const usersService = app.get(UsersService);
-    const user = await usersService.findByEmail(email);
-
-    if (!user) {
-      console.error(`No user found with email ${email}`);
-      process.exitCode = 1;
-      return;
-    }
-
+    const user = await usersService.getLocalUser();
     const resumeProfileService = app.get(ResumeProfileService);
     const saved = await resumeProfileService.upsert(user.id, dto);
-    console.log(`Resume profile saved for ${email} (id=${saved.id})`);
+    console.log(`Resume profile saved for ${user.email} (id=${saved.id})`);
   } finally {
     await app.close();
   }

@@ -10,9 +10,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { RefreshToken } from './refresh-token.entity';
 import { SearchProfile } from '../../profiles/entities/search-profile.entity';
-import { UserRole } from '../enums/user-role.enum';
 
 @Entity('users')
 export class User {
@@ -27,14 +25,6 @@ export class User {
   @ApiProperty({ example: 'osvaldo@example.com', maxLength: 150 })
   @Column({ type: 'varchar', length: 150, unique: true })
   email: string;
-
-  @ApiHideProperty()
-  @Column({ type: 'varchar', length: 255 })
-  password: string;
-
-  @ApiProperty({ enum: UserRole, example: UserRole.USER })
-  @Column({ type: 'enum', enum: UserRole, default: UserRole.USER })
-  role: UserRole;
 
   @ApiPropertyOptional({ nullable: true })
   @Column({ type: 'text', nullable: true })
@@ -59,10 +49,6 @@ export class User {
   @ApiProperty({ type: String, format: 'date-time' })
   @CreateDateColumn({ type: 'timestamptz' })
   created_at: Date;
-
-  @ApiHideProperty()
-  @OneToMany(() => RefreshToken, (refreshToken) => refreshToken.user)
-  refresh_tokens: RefreshToken[];
 
   @ApiHideProperty()
   @OneToMany(() => SearchProfile, (profile) => profile.user)

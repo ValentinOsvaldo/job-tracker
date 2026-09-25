@@ -1,19 +1,12 @@
 import {
   BadRequestException,
-  ForbiddenException,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as bcrypt from 'bcrypt';
 import { Repository } from 'typeorm';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateSelfDto } from './dto/update-self.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from './entities/user.entity';
-import { UserRole } from './enums/user-role.enum';
 import { PdfParserService } from './pdf-parser.service';
 import { CvUploadResult } from './types/cv-upload-result.type';
 import { PublicUser } from './types/public-user.type';
@@ -27,63 +20,19 @@ export class UsersService {
     private readonly pdfParserService: PdfParserService,
   ) {}
 
-  async create(dto: CreateUserDto): Promise<PublicUser> {
-    const existing = await this.usersRepository.findOne({
-      where: { email: dto.email },
+  // Single-user app: the oldest user row is "the" user (the SingleUserMode
+  // migration guarantees one exists).
+  async getLocalUser(): Promise<PublicUser> {
+    const [user] = await this.usersRepository.find({
+      order: { created_at: 'ASC' },
+      take: 1,
     });
-
-    if (existing) {
-      throw new BadRequestException(
-        `A user with email ${dto.email} already exists`,
-      );
-    }
-
-    const user = await this.usersRepository.save({
-      name: dto.name,
-      email: dto.email,
-      password: await bcrypt.hash(dto.password, 12),
-      role: dto.role ?? UserRole.USER,
-    });
-
-    return this.toPublicUser(user);
-  }
-
-  findAll(): Promise<PublicUser[]> {
-    return this.usersRepository
-      .find({ order: { name: 'ASC' } })
-      .then((users) => users.map((user) => this.toPublicUser(user)));
-  }
-
-  async findPublicById(id: string): Promise<PublicUser> {
-    const user = await this.findById(id);
 
     if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
+      throw new NotFoundException('No user found — did migrations run?');
     }
 
     return this.toPublicUser(user);
-  }
-
-  async update(id: string, dto: UpdateUserDto): Promise<PublicUser> {
-    const user = await this.findById(id);
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    await this.assertEmailAvailable(dto.email, id);
-
-    const update: Partial<User> = {};
-    if (dto.name !== undefined) update.name = dto.name;
-    if (dto.email !== undefined) update.email = dto.email;
-    if (dto.role !== undefined) update.role = dto.role;
-    if (dto.password !== undefined) {
-      update.password = await bcrypt.hash(dto.password, 12);
-    }
-
-    await this.usersRepository.update(id, update);
-    const updated = await this.findById(id);
-    return this.toPublicUser(updated as User);
   }
 
   async updateSelf(userId: string, dto: UpdateSelfDto): Promise<PublicUser> {
@@ -92,8 +41,6 @@ export class UsersService {
     if (!user) {
       throw new NotFoundException(`User with id ${userId} not found`);
     }
-
-    await this.assertEmailAvailable(dto.email, userId);
 
     const update: Partial<User> = {};
     if (dto.name !== undefined) update.name = dto.name;
@@ -104,68 +51,6 @@ export class UsersService {
     await this.usersRepository.update(userId, update);
     const updated = await this.findById(userId);
     return this.toPublicUser(updated as User);
-  }
-
-  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
-    const user = await this.findById(userId);
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${userId} not found`);
-    }
-
-    const isCurrentPasswordValid = await bcrypt.compare(
-      dto.currentPassword,
-      user.password,
-    );
-
-    if (!isCurrentPasswordValid) {
-      throw new UnauthorizedException('Current password is incorrect');
-    }
-
-    await this.usersRepository.update(userId, {
-      password: await bcrypt.hash(dto.newPassword, 12),
-    });
-  }
-
-  async remove(id: string, requestingUser: PublicUser): Promise<void> {
-    const user = await this.findById(id);
-
-    if (!user) {
-      throw new NotFoundException(`User with id ${id} not found`);
-    }
-
-    if (id === requestingUser.id) {
-      throw new ForbiddenException('You cannot delete your own account');
-    }
-
-    if (user.role === UserRole.ADMIN) {
-      const adminCount = await this.usersRepository.count({
-        where: { role: UserRole.ADMIN },
-      });
-
-      if (adminCount <= 1) {
-        throw new ForbiddenException('Cannot delete the last remaining admin');
-      }
-    }
-
-    await this.usersRepository.delete(id);
-  }
-
-  private async assertEmailAvailable(
-    email: string | undefined,
-    excludeId: string,
-  ): Promise<void> {
-    if (!email) {
-      return;
-    }
-
-    const existing = await this.usersRepository.findOne({ where: { email } });
-
-    if (existing && existing.id !== excludeId) {
-      throw new BadRequestException(
-        `A user with email ${email} already exists`,
-      );
-    }
   }
 
   async uploadCv(
@@ -202,10 +87,6 @@ export class UsersService {
     };
   }
 
-  findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { email } });
-  }
-
   findById(id: string): Promise<User | null> {
     return this.usersRepository.findOne({ where: { id } });
   }
@@ -215,7 +96,6 @@ export class UsersService {
       id: user.id,
       name: user.name,
       email: user.email,
-      role: user.role,
       cv_text: user.cv_text,
       cv_filename: user.cv_filename,
       cv_uploaded_at: user.cv_uploaded_at,

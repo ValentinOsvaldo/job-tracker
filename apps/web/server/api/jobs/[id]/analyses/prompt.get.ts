@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'profile_id is required' })
   }
 
-  return backendFetch<{ prompt: string }>(event, `/api/jobs/${id}/analyses/prompt`, {
+  return backendFetch<{ prompt: string }>(`/api/jobs/${id}/analyses/prompt`, {
     query: { profile_id: profileId }
   })
 })

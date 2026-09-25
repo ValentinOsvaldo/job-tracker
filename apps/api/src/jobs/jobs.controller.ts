@@ -18,7 +18,6 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import {
-  ApiBearerAuth,
   ApiBody,
   ApiOperation,
   ApiParam,
@@ -34,10 +33,7 @@ import { JobAnalysesService } from '../job-analyses/job-analyses.service';
 import { MarketTrendsResponseDto } from '../market-trends/dto/market-trends-response.dto';
 import { TrendsQueryDto } from '../market-trends/dto/trends-query.dto';
 import { MarketTrendsService } from '../market-trends/market-trends.service';
-import { Public } from '../auth/decorators/public.decorator';
-import { Roles } from '../auth/decorators/roles.decorator';
 import { PublicUser } from '../users/types/public-user.type';
-import { UserRole } from '../users/enums/user-role.enum';
 import { BulkDeleteJobsDto } from './dto/bulk-delete-jobs.dto';
 import {
   BlockedCompanyResponseDto,
@@ -80,7 +76,6 @@ export class JobsController {
     private readonly resumeTemplateService: ResumeTemplateService,
   ) {}
 
-  @Public()
   @Post('ingest')
   @HttpCode(200)
   @ApiOperation({
@@ -99,7 +94,6 @@ export class JobsController {
 
   @Post('scrape')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Trigger a manual scrape',
     description:
@@ -113,7 +107,6 @@ export class JobsController {
   }
 
   @Get('trends')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get market trends from scraped jobs' })
   @ApiResponse({ status: 200, type: MarketTrendsResponseDto })
   getTrends(@Query() query: TrendsQueryDto) {
@@ -121,7 +114,6 @@ export class JobsController {
   }
 
   @Get('pipeline-stats')
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Get application pipeline stats for the current user',
     description:
@@ -133,7 +125,6 @@ export class JobsController {
   }
 
   @Get()
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List jobs with pagination' })
   @ApiResponse({ status: 200, type: PaginatedJobsResponseDto })
   findAll(@Req() req: { user: PublicUser }, @Query() query: ListJobsQueryDto) {
@@ -162,8 +153,6 @@ export class JobsController {
 
   @Delete()
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Delete all jobs and their analyses (admin only)' })
   @ApiResponse({ status: 200, type: DeleteAllJobsResultDto })
   @ApiResponse({ status: 403, description: 'Admin role required' })
@@ -174,8 +163,6 @@ export class JobsController {
 
   @Post('bulk-delete')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete multiple jobs and their analyses (admin only)',
   })
@@ -189,8 +176,6 @@ export class JobsController {
 
   @Delete(':id')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Delete a single job and its analyses (admin only)',
   })
@@ -205,7 +190,6 @@ export class JobsController {
 
   @Patch(':id/status')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Set job interest/application status for the current user',
   })
@@ -223,7 +207,6 @@ export class JobsController {
 
   @Post(':id/analyses/regenerate')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Regenerate AI analyses for a job' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiQuery({ name: 'profile_id', required: false, format: 'uuid' })
@@ -238,7 +221,6 @@ export class JobsController {
   }
 
   @Get(':id/analyses/prompt')
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary:
       'Get the AI analysis prompt for a job/profile pair, to copy and use manually in an external chat tool',
@@ -262,7 +244,6 @@ export class JobsController {
 
   @Post(':id/analyses/manual')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary:
       'Save an analysis result obtained manually from an external AI chat tool',
@@ -287,7 +268,6 @@ export class JobsController {
 
   @Post(':id/summary/regenerate')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Regenerate the AI TLDR summary for a job' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: Job })
@@ -298,7 +278,6 @@ export class JobsController {
 
   @Post(':id/work-mode/regenerate')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Regenerate the AI work mode/location classification for a job',
   })
@@ -311,8 +290,6 @@ export class JobsController {
 
   @Post('work-mode/backfill')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary:
       'Queue AI work mode/location classification for all jobs still unknown (admin only)',
@@ -325,8 +302,6 @@ export class JobsController {
 
   @Post('relevance/scan')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary:
       'Queue AI relevance classification for all jobs not yet checked (admin only)',
@@ -340,7 +315,6 @@ export class JobsController {
   }
 
   @Get('blocked-companies')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'List blocked companies' })
   @ApiResponse({ status: 200, type: [BlockedCompanyResponseDto] })
   listBlockedCompanies() {
@@ -349,8 +323,6 @@ export class JobsController {
 
   @Post('blocked-companies')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({
     summary: 'Block a company (admin only)',
     description:
@@ -365,8 +337,6 @@ export class JobsController {
 
   @Delete('blocked-companies/:id')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
-  @Roles(UserRole.ADMIN)
   @ApiOperation({ summary: 'Unblock a company (admin only)' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, description: 'Deleted' })
@@ -379,7 +349,6 @@ export class JobsController {
 
   @Post(':id/tailor-resume')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Generate an AI-tailored resume for this job application',
     description:
@@ -412,7 +381,6 @@ export class JobsController {
   }
 
   @Get(':id/tailor-resume')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get the saved tailored resume for this job' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: TailoredResume })
@@ -429,7 +397,6 @@ export class JobsController {
 
   @Post(':id/tailor-resume/validate')
   @HttpCode(200)
-  @ApiBearerAuth('access-token')
   @ApiOperation({
     summary: 'Re-check (and optionally save) edits to a tailored resume',
     description:
@@ -455,7 +422,6 @@ export class JobsController {
   }
 
   @Get(':id/tailor-resume/pdf')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Download the tailored resume as a PDF' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiQuery({ name: 'template', required: false, example: 'classic' })
@@ -486,7 +452,6 @@ export class JobsController {
   }
 
   @Get(':id')
-  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Get a job by ID' })
   @ApiParam({ name: 'id', format: 'uuid' })
   @ApiResponse({ status: 200, type: Job })

@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'ids is required' })
   }
 
-  return backendFetch<BulkDeleteResult>(event, '/api/jobs/bulk-delete', {
+  return backendFetch<BulkDeleteResult>('/api/jobs/bulk-delete', {
     method: 'POST',
     body: { ids: body.ids }
   })

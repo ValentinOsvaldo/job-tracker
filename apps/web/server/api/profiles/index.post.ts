@@ -4,7 +4,7 @@ import { backendFetch } from '../../utils/backend'
 export default defineEventHandler(async (event) => {
   const body = await readBody<CreateProfileInput>(event)
 
-  return backendFetch<SearchProfile>(event, '/api/profiles', {
+  return backendFetch<SearchProfile>('/api/profiles', {
     method: 'POST',
     body
   })

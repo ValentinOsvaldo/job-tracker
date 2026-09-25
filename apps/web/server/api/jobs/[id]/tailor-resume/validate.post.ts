@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ generated_content?: TailoredResumeContent }>(event)
 
-  return backendFetch<TailoredResume>(event, `/api/jobs/${id}/tailor-resume/validate`, {
+  return backendFetch<TailoredResume>(`/api/jobs/${id}/tailor-resume/validate`, {
     method: 'POST',
     body: body ?? {}
   })

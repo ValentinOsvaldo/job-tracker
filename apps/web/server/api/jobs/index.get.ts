@@ -4,7 +4,7 @@ import { backendFetch } from '../../utils/backend'
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
-  return backendFetch<JobsListResponse>(event, '/api/jobs', {
+  return backendFetch<JobsListResponse>('/api/jobs', {
     query: {
       source: query.source as string | undefined,
       profile_id: query.profile_id as string | undefined,

@@ -19,10 +19,6 @@ const ROLE_CATEGORY_ICONS: Record<JobRoleCategory, string> = {
   other: 'i-lucide-circle-dashed'
 }
 
-definePageMeta({
-  middleware: 'auth'
-})
-
 const route = useRoute()
 const api = useApiClient()
 const toast = useToast()

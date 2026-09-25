@@ -5,7 +5,6 @@ const props = defineProps<{
   error: NuxtError
 }>()
 
-const isAuthError = computed(() => props.error.statusCode === 401)
 const isNotFound = computed(() => props.error.statusCode === 404)
 
 const title = computed(() => {
@@ -26,16 +25,6 @@ const icon = computed(() => {
   return 'i-lucide-circle-alert'
 })
 
-// A 401 means the session/token is no longer valid server-side — bounce to
-// login instead of showing a dead-end error screen.
-onMounted(async () => {
-  if (isAuthError.value) {
-    const { clear } = useUserSession()
-    await clear()
-    await clearError({ redirect: '/login' })
-  }
-})
-
 function goHome() {
   clearError({ redirect: '/' })
 }
@@ -48,47 +37,36 @@ function reload() {
 <template>
   <UApp>
     <div class="min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4 bg-default">
-      <template v-if="isAuthError">
-        <UIcon
-          name="i-lucide-loader-circle"
-          class="size-8 text-muted animate-spin"
-        />
-        <p class="text-sm text-muted">
-          Redirecting to sign in…
+      <UIcon
+        :name="icon"
+        class="size-10 text-muted"
+      />
+      <div class="space-y-1">
+        <h1 class="text-xl font-semibold text-highlighted">
+          {{ title }}
+        </h1>
+        <p class="text-sm text-muted max-w-sm">
+          {{ description }}
         </p>
-      </template>
-      <template v-else>
-        <UIcon
-          :name="icon"
-          class="size-10 text-muted"
-        />
-        <div class="space-y-1">
-          <h1 class="text-xl font-semibold text-highlighted">
-            {{ title }}
-          </h1>
-          <p class="text-sm text-muted max-w-sm">
-            {{ description }}
-          </p>
-        </div>
-        <div class="flex gap-2">
-          <UButton
-            icon="i-lucide-house"
-            color="neutral"
-            variant="subtle"
-            @click="goHome"
-          >
-            Go home
-          </UButton>
-          <UButton
-            icon="i-lucide-refresh-cw"
-            color="neutral"
-            variant="ghost"
-            @click="reload"
-          >
-            Try again
-          </UButton>
-        </div>
-      </template>
+      </div>
+      <div class="flex gap-2">
+        <UButton
+          icon="i-lucide-house"
+          color="neutral"
+          variant="subtle"
+          @click="goHome"
+        >
+          Go home
+        </UButton>
+        <UButton
+          icon="i-lucide-refresh-cw"
+          color="neutral"
+          variant="ghost"
+          @click="reload"
+        >
+          Try again
+        </UButton>
+      </div>
     </div>
   </UApp>
 </template>

@@ -3,7 +3,6 @@ export type JobSource = 'linkedin' | 'indeed'
 export type InterestStatus = 'liked' | 'disliked'
 export type JobSortBy = 'salary' | 'score' | 'location'
 export type SortDirection = 'asc' | 'desc'
-export type UserRole = 'admin' | 'user'
 export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'unknown'
 export type WorkModeSource = 'heuristic' | 'ai'
 export type JobRelevance = 'unknown' | 'relevant' | 'irrelevant'
@@ -14,7 +13,6 @@ export interface PublicUser {
   id: string
   name: string
   email: string
-  role: UserRole
   cv_text: string | null
   cv_filename: string | null
   cv_uploaded_at: string | null
@@ -23,30 +21,11 @@ export interface PublicUser {
   created_at: string
 }
 
-export interface CreateUserInput {
-  name: string
-  email: string
-  password: string
-  role?: UserRole
-}
-
-export interface UpdateUserInput {
-  name?: string
-  email?: string
-  password?: string
-  role?: UserRole
-}
-
 export interface UpdateSelfInput {
   name?: string
   email?: string
   home_city?: string | null
   home_country?: string | null
-}
-
-export interface ChangePasswordInput {
-  currentPassword: string
-  newPassword: string
 }
 
 export interface SearchProfile {
@@ -316,11 +295,6 @@ export interface BulkDeleteResult {
   deleted: number
 }
 
-export interface SeedResult {
-  created: string[]
-  skipped: string[]
-}
-
 export interface CvUploadResult {
   filename: string
   characters_extracted: number
@@ -452,15 +426,4 @@ export interface AtsCheckResponse {
   recommendations: string[]
   analyzed_jobs_count: number
   generated_at: string
-}
-
-export interface LoginResponse {
-  accessToken: string
-  refreshToken: string
-  user: PublicUser
-}
-
-export interface AuthTokensResponse {
-  accessToken: string
-  refreshToken: string
 }

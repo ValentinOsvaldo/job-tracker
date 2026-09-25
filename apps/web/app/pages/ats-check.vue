@@ -1,10 +1,6 @@
 <script setup lang="ts">
 import type { AtsCheckStatus } from '~/types/api'
 
-definePageMeta({
-  middleware: 'auth'
-})
-
 const api = useApiClient()
 
 const { data: me, isPending: mePending } = useQuery({

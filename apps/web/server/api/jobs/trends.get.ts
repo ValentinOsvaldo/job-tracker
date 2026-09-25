@@ -4,7 +4,7 @@ import { backendFetch } from '../../utils/backend'
 export default defineEventHandler(async (event) => {
   const query = getQuery(event)
 
-  return backendFetch<MarketTrendsResponse>(event, '/api/jobs/trends', {
+  return backendFetch<MarketTrendsResponse>('/api/jobs/trends', {
     query: {
       days: query.days !== undefined ? Number(query.days) : undefined,
       source: query.source as string | undefined,

@@ -7,5 +7,5 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
-  return backendFetch<Job>(event, `/api/jobs/${id}`)
+  return backendFetch<Job>(`/api/jobs/${id}`)
 })

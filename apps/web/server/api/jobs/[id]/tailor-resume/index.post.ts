@@ -7,7 +7,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
-  return backendFetch<TailoredResume>(event, `/api/jobs/${id}/tailor-resume`, {
+  return backendFetch<TailoredResume>(`/api/jobs/${id}/tailor-resume`, {
     method: 'POST',
     timeout: 60_000
   })

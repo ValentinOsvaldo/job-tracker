@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody(event)
 
-  return backendFetch<JobAnalysis>(event, `/api/jobs/${id}/analyses/manual`, {
+  return backendFetch<JobAnalysis>(`/api/jobs/${id}/analyses/manual`, {
     method: 'POST',
     body
   })

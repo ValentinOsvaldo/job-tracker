@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Profile id is required' })
   }
 
-  return backendFetch<{ ok: true }>(event, `/api/profiles/${id}`, {
+  return backendFetch<{ ok: true }>(`/api/profiles/${id}`, {
     method: 'DELETE'
   })
 })

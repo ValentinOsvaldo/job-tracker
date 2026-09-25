@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Job id is required' })
   }
 
-  return backendFetch<{ ok: true }>(event, `/api/jobs/${id}`, {
+  return backendFetch<{ ok: true }>(`/api/jobs/${id}`, {
     method: 'DELETE'
   })
 })

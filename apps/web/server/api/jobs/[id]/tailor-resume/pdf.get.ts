@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event)
   const template = typeof query.template === 'string' ? query.template : 'classic'
 
-  const buffer = await backendFetch<ArrayBuffer>(event, `/api/jobs/${id}/tailor-resume/pdf`, {
+  const buffer = await backendFetch<ArrayBuffer>(`/api/jobs/${id}/tailor-resume/pdf`, {
     query: { template },
     responseType: 'arrayBuffer'
   })

@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Blocked company id is required' })
   }
 
-  return backendFetch<{ ok: true }>(event, `/api/jobs/blocked-companies/${id}`, {
+  return backendFetch<{ ok: true }>(`/api/jobs/blocked-companies/${id}`, {
     method: 'DELETE'
   })
 })

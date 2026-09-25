@@ -3,7 +3,6 @@
 ARG NODE_VERSION=22.21.1
 FROM node:${NODE_VERSION}-slim AS base
 
-LABEL fly_launch_runtime="NestJS"
 
 WORKDIR /app
 
@@ -30,4 +29,5 @@ FROM base
 COPY --from=build /app /app
 
 EXPOSE 3000
-CMD [ "sh", "-c", "npm run migration:run && node dist/main" ]
+# Migrations run on boot (migrationsRun when NODE_ENV=production)
+CMD [ "node", "dist/main" ]

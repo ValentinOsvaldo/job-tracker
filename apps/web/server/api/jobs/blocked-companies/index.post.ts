@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'company is required' })
   }
 
-  return backendFetch<CreateBlockedCompanyResult>(event, '/api/jobs/blocked-companies', {
+  return backendFetch<CreateBlockedCompanyResult>('/api/jobs/blocked-companies', {
     method: 'POST',
     body
   })

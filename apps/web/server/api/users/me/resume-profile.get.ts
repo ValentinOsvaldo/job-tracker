@@ -1,6 +1,6 @@
 import type { ResumeProfile } from '../../../../app/types/api'
 import { backendFetch } from '../../../utils/backend'
 
-export default defineEventHandler(async (event) => {
-  return backendFetch<ResumeProfile | null>(event, '/api/users/me/resume-profile')
+export default defineEventHandler(async () => {
+  return backendFetch<ResumeProfile | null>('/api/users/me/resume-profile')
 })

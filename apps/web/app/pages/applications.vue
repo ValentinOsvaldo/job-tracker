@@ -2,14 +2,9 @@
 import type { InterestStatus, Job, JobSource, ListJobsQuery, WorkMode } from '~/types/api'
 import { h, resolveComponent } from 'vue'
 
-definePageMeta({
-  middleware: 'auth'
-})
-
 const toast = useToast()
 const queryCache = useQueryCache()
 const api = useApiClient()
-const auth = useAuthStore()
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
@@ -191,7 +186,7 @@ const columns = [
           variant: 'subtle',
           icon: 'i-lucide-arrow-right'
         }, () => 'View'),
-        auth.isAdmin && row.original.company
+        row.original.company
           ? h(UButton, {
               'size': 'xs',
               'color': 'warning',

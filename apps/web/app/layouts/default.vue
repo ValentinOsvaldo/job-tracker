@@ -1,8 +1,13 @@
 <script setup lang="ts">
 import type { NavigationMenuItem } from '@nuxt/ui'
 
-const auth = useAuthStore()
 const route = useRoute()
+const api = useApiClient()
+
+const { data: me } = useQuery({
+  key: ['me'],
+  query: () => api.meQuery.query()
+})
 
 const links = computed<NavigationMenuItem[]>(() => [
   {
@@ -48,10 +53,10 @@ const links = computed<NavigationMenuItem[]>(() => [
     active: route.path.startsWith('/ats-check')
   },
   {
-    label: 'Users',
-    to: '/users',
+    label: 'Account',
+    to: '/account',
     icon: 'i-lucide-user-cog',
-    active: route.path.startsWith('/users')
+    active: route.path.startsWith('/account')
   },
   {
     label: 'Settings',
@@ -59,23 +64,6 @@ const links = computed<NavigationMenuItem[]>(() => [
     icon: 'i-lucide-settings',
     active: route.path.startsWith('/settings')
   }
-])
-
-const accountItems = computed(() => [
-  [
-    {
-      label: auth.user?.name ?? 'Account',
-      icon: 'i-lucide-user',
-      type: 'label' as const
-    }
-  ],
-  [
-    {
-      label: 'Logout',
-      icon: 'i-lucide-log-out',
-      onSelect: () => auth.logout()
-    }
-  ]
 ])
 </script>
 
@@ -109,21 +97,16 @@ const accountItems = computed(() => [
       </template>
 
       <template #footer="{ collapsed }">
-        <UDropdownMenu
-          :items="accountItems"
-          class="w-full"
-        >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            :icon="collapsed ? 'i-lucide-user' : undefined"
-            :label="collapsed ? undefined : (auth.user?.name ?? 'Account')"
-            :loading="auth.loading"
-            :aria-label="auth.user?.name ?? 'Account'"
-            block
-            class="justify-start"
-          />
-        </UDropdownMenu>
+        <UButton
+          to="/account"
+          color="neutral"
+          variant="ghost"
+          :icon="collapsed ? 'i-lucide-user' : undefined"
+          :label="collapsed ? undefined : (me?.name ?? 'Account')"
+          :aria-label="me?.name ?? 'Account'"
+          block
+          class="justify-start"
+        />
       </template>
     </UDashboardSidebar>
 

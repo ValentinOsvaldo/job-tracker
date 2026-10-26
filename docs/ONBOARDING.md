@@ -280,7 +280,7 @@ pnpm --filter @job-tracker/api migration:revert   # deshacer la última
 
 1. Crea una rama desde `main`: `git checkout -b feat/lo-que-hagas`
 2. Commits con prefijo: `feat:`, `fix:`, `docs:`, `refactor:`…
-3. Lint y typecheck en verde.
+3. Lint y typecheck en verde. Al hacer commit, husky corre `eslint --fix` solo sobre los archivos que agregaste (lint-staged); si queda un error que no se puede arreglar solo, el commit se cancela.
 4. PR a `main` y lo revisamos.
 
 ¡Bienvenido! Cualquier duda, pregunta.

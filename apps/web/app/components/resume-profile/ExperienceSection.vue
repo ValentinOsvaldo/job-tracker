@@ -63,7 +63,7 @@ function removeBullet(entry: ExperienceEntry, index: number) {
               placeholder="e.g. 2022 - Presente"
             />
             <UInput
-              v-model="entry.location"
+              v-model.nullable="entry.location"
               placeholder="Ubicación (opcional)"
             />
           </div>

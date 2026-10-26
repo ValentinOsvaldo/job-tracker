@@ -60,7 +60,7 @@ async function onSubmit() {
           v-model="raw"
           class="w-full font-mono text-xs"
           :rows="12"
-          placeholder='{"fit_score": 8.5, "matched_skills": [...], ...}'
+          placeholder="{&quot;fit_score&quot;: 8.5, &quot;matched_skills&quot;: [...], ...}"
         />
         <div class="flex justify-end gap-2 pt-1">
           <UButton

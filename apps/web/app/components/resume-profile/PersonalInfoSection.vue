@@ -29,7 +29,7 @@ function removeLink(index: number) {
       </UFormField>
       <UFormField label="Título/headline">
         <UInput
-          v-model="model.headline"
+          v-model.nullable="model.headline"
           placeholder="e.g. Senior Frontend Developer"
           class="w-full"
         />
@@ -43,7 +43,7 @@ function removeLink(index: number) {
       </UFormField>
       <UFormField label="Teléfono">
         <UInput
-          v-model="model.phone"
+          v-model.nullable="model.phone"
           class="w-full"
         />
       </UFormField>
@@ -52,7 +52,7 @@ function removeLink(index: number) {
         class="sm:col-span-2"
       >
         <UInput
-          v-model="model.location"
+          v-model.nullable="model.location"
           placeholder="e.g. Ciudad de México, MX"
           class="w-full"
         />

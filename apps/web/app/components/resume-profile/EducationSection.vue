@@ -67,12 +67,12 @@ function removeEntry(index: number) {
           placeholder="Título/grado"
         />
         <UInput
-          v-model="entry.period"
+          v-model.nullable="entry.period"
           placeholder="Periodo (opcional)"
         />
         <div class="flex items-center gap-2">
           <UInput
-            v-model="entry.location"
+            v-model.nullable="entry.location"
             placeholder="Ubicación (opcional)"
             class="flex-1"
           />

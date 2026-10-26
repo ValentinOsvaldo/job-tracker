@@ -69,7 +69,7 @@ function removeProject(index: number) {
             @update:model-value="(v) => setTags(project, String(v))"
           />
           <UInput
-            v-model="project.url"
+            v-model.nullable="project.url"
             placeholder="URL (opcional)"
             class="flex-1"
           />

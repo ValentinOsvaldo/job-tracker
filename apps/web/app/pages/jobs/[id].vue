@@ -342,7 +342,7 @@ function onStatusUpdated(result: { interest: InterestStatus | null, applied: boo
             >{{ email }}</a>
             <UButton
               icon="i-lucide-copy"
-              size="2xs"
+              size="xs"
               color="neutral"
               variant="ghost"
               :aria-label="`Copiar ${email}`"

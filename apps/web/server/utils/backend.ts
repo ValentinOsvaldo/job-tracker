@@ -8,7 +8,7 @@ function toFetchError(error: unknown) {
 export async function backendFetch<T>(
   path: string,
   options: {
-    method?: string
+    method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'
     body?: BodyInit | Record<string, unknown> | object | null
     query?: Record<string, string | number | boolean | undefined | null>
     headers?: Record<string, string>

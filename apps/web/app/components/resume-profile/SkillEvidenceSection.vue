@@ -69,7 +69,7 @@ function removeEvidence(index: number) {
           placeholder="El hecho concreto (sin exagerar)"
         />
         <UInput
-          v-model="evidence.impact"
+          v-model.nullable="evidence.impact"
           placeholder="Impacto medible (opcional)"
           class="w-full"
         />

@@ -2,6 +2,10 @@ import { Job } from '../../jobs/entities/job.entity';
 import { SearchProfile } from '../../profiles/entities/search-profile.entity';
 import { User } from '../../users/entities/user.entity';
 
+// Market/currency the AI assumes when estimating salaries (default: México, MXN).
+const JOB_MARKET = process.env.JOB_MARKET || 'México';
+const SALARY_CURRENCY = process.env.SALARY_CURRENCY || 'MXN';
+
 function formatRange(
   min: number | null,
   max: number | null,
@@ -81,15 +85,15 @@ Responde ÚNICAMENTE con JSON válido, sin texto adicional ni markdown:
   "matched_skills": [<skills de ${profile.role} que coinciden, solo si están claramente respaldadas por el CV>],
   "missing_skills": [<skills de ${profile.role} que pide la oferta pero el CV no respalda, priorizando las obligatorias>],
   "summary": "<2-3 oraciones enfocadas en el match para ${profile.role}, mencionando explícitamente si hay riesgo de rechazo por requisitos obligatorios faltantes o mismatch de seniority>",
-  "salary_min": <entero en MXN o null>,
-  "salary_max": <entero en MXN o null>,
+  "salary_min": <entero en ${SALARY_CURRENCY} o null>,
+  "salary_max": <entero en ${SALARY_CURRENCY} o null>,
   "salary_is_inferred": <true si lo estimaste, false si era explícito>,
   "benefits": [<prestaciones mencionadas o inferidas>],
   "benefits_is_inferred": <true si los inferiste>
 }
 
 Sobre el salario: si no se menciona, estímalo según el rol ${profile.role},
-seniority requerido, stack y mercado mexicano. Marca salary_is_inferred: true.
+seniority requerido, stack y mercado laboral de ${JOB_MARKET}. Marca salary_is_inferred: true.
 Si no hay información suficiente, usa null.
   `.trim();
 }

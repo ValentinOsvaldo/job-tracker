@@ -37,5 +37,9 @@ LINKEDIN_FETCH_DESCRIPTION = _parse_bool(
     os.getenv("LINKEDIN_FETCH_DESCRIPTION"),
     True,
 )
+# Jobspy country for Indeed (e.g. "usa", "spain", "worldwide"); LinkedIn ignores it.
+INDEED_COUNTRY = os.getenv("INDEED_COUNTRY") or "Mexico"
+# Only return remote postings
+IS_REMOTE = _parse_bool(os.getenv("IS_REMOTE"), False)
 RELEVANCE_FILTER = _parse_bool(os.getenv("RELEVANCE_FILTER"), True)
 ENFORCE_ANNUAL_SALARY = _parse_bool(os.getenv("ENFORCE_ANNUAL_SALARY"), True)

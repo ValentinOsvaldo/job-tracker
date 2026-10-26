@@ -5,7 +5,7 @@ export function buildTrendsPrompt(input: TrendsAnalysisInput): string {
     items.map((item) => `${item.term} (${item.count})`).join(', ') || 'ninguno';
 
   return `
-Eres un analista del mercado laboral tech en México. Con base en datos agregados de ofertas
+Eres un analista del mercado laboral tech de ${process.env.JOB_MARKET || 'México'}. Con base en datos agregados de ofertas
 de trabajo recientes, identifica tendencias actuales del mercado.
 
 PERÍODO ANALIZADO: últimos ${input.periodDays} días

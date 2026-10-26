@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from config import (
     ENFORCE_ANNUAL_SALARY,
     HOURS_OLD,
+    INDEED_COUNTRY,
+    IS_REMOTE,
     LINKEDIN_FETCH_DESCRIPTION,
     LOCATIONS,
     NESTJS_URL,
@@ -129,7 +131,8 @@ def fetch_jobs(params: ScrapeParams | None = None) -> pd.DataFrame:
                 location=location,
                 results_wanted=scrape.results_wanted,
                 hours_old=scrape.hours_old,
-                country_indeed="Mexico",
+                country_indeed=INDEED_COUNTRY,
+                is_remote=IS_REMOTE,
                 linkedin_fetch_description=LINKEDIN_FETCH_DESCRIPTION,
                 enforce_annual_salary=ENFORCE_ANNUAL_SALARY,
             )

@@ -29,6 +29,8 @@ services:
       SCRAPER_URL: http://scrapper:8000
       GEMINI_API_KEY: ${GEMINI_API_KEY:?Set GEMINI_API_KEY in .env}
       GEMINI_MODEL: ${GEMINI_MODEL:-gemini-3.8-flash}
+      JOB_MARKET: ${JOB_MARKET:-}
+      SALARY_CURRENCY: ${SALARY_CURRENCY:-}
     ports:
       - '127.0.0.1:3000:3000'
 
@@ -40,6 +42,8 @@ services:
       PORT: 8000
       SEARCH_TERMS: ${SEARCH_TERMS:-}
       LOCATIONS: ${LOCATIONS:-}
+      INDEED_COUNTRY: ${INDEED_COUNTRY:-}
+      IS_REMOTE: ${IS_REMOTE:-}
 
   web:
     build: ./apps/web

@@ -1,5 +1,7 @@
 # Job Tracker — Especificación del Proyecto.
 
+> ¿Nuevo en el proyecto? Empieza por [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
 ## Correr con Docker
 
 ```bash
